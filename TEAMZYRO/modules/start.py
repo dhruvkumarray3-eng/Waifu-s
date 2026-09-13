@@ -16,6 +16,8 @@ from TEAMZYRO.unit.zyro_help import HELP_DATA
 # 🔴 FIX: Hardcoded the support chat and owner exactly as requested
 SUPPORT_CHAT = "https://t.me/+cYkP7lDW0uY4MzVl"
 UPDATE_CHAT = os.getenv("UPDATE_CHAT", "")
+# Fetch FORCE_JOIN from environment to route logs to the support group
+FORCE_JOIN_ID = os.getenv("FORCE_JOIN", "-1004305990907")
 
 # 🔹 Helper function to ensure URL is valid for Telegram buttons
 def format_url(url: str):
@@ -102,10 +104,9 @@ async def generate_group_start_message(client):
         
     return caption, buttons
 
-# 🔹 Send Media (Helper) - 🔴 FIX: Added Text Failsafe
+# 🔹 Send Media (Helper) - Text Failsafe applied
 async def send_media_message(message, media, caption, buttons):
     try:
-        # Try to send with the media first
         if media.lower().endswith(('.png', '.jpg', '.jpeg')):
             await message.reply_photo(photo=media, caption=caption, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
         elif media.lower().endswith('.gif'):
@@ -114,7 +115,6 @@ async def send_media_message(message, media, caption, buttons):
             await message.reply_video(video=media, caption=caption, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
     except Exception as e:
         print(f"Media failed to send ({e}). Falling back to text only!")
-        # If the image link is broken or Telegram rejects it, just send the menu without the picture!
         await message.reply_text(text=caption, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
 
 # 🔹 Private Start Command Handler
@@ -135,16 +135,16 @@ async def start_private_command(client, message):
     caption, buttons = await generate_start_message(client, message)
     media = random.choice(START_MEDIA)
 
-    # 🔴 FIX: Cleaned up the weird text and safely converted ID to prevent crashing
-    if BOT_LOGGING:
+    # 🔴 FIX: Send the log directly to the Support Group (using FORCE_JOIN_ID)
+    if FORCE_JOIN_ID:
         try:
-            log_chat_id = int(BOT_LOGGING) if str(BOT_LOGGING).lstrip("-").isdigit() else BOT_LOGGING
+            log_chat_id = int(FORCE_JOIN_ID) if str(FORCE_JOIN_ID).lstrip("-").isdigit() else FORCE_JOIN_ID
             await app.send_message(
                 chat_id=log_chat_id,
                 text=f"🦋 <b>New Slayer Arrived!</b>\n\n👤 {message.from_user.mention}\n<b>ID:</b> <code>{message.from_user.id}</code>\n<b>Username:</b> @{message.from_user.username}",
             )
         except Exception as e:
-            print(f"Failed to send start log to BOT_LOGGING: {e}")
+            print(f"Failed to send start log to Support Chat: {e}")
 
     await send_media_message(message, media, caption, buttons)
 
