@@ -21,7 +21,7 @@ TOKEN = os.getenv("TOKEN", "")
 BOT_LOGGING = os.getenv("BOT_LOGGING", "")
 DATABASE_ID = os.getenv("DATABASE_ID", "")
 FORCE_JOIN = os.getenv("FORCE_JOIN", "")
-
+P2P_CHANNEL = os.getenv("P2P_CHANNEL", "")   # e.g. -1004337222126
 # Database configuration
 mongo_url = os.getenv("MONGO_URL", "")
 backup_mongo_url = os.getenv("BACKUP_MONGO_URL", "")
