@@ -4,7 +4,7 @@ ENV PIP_NO_CACHE_DIR=1
 
 # Repoint apt sources to the Debian archive since Buster is EOL and removed
 # from the standard mirrors
-RUN sed -i 's|deb.debian.org|archive.debian.org|g; s|security.debian.org|archive.debian.org/debian-security|g' /etc/apt/sources.list
+RUN sed -i 's|deb.debian.org|archive.debian.org|g; s|security.debian.org|archive.debian.org|g' /etc/apt/sources.list
 
 # Install git and other needed tools
 RUN apt-get update && apt-get install -y git gcc && apt-get clean
