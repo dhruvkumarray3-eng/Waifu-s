@@ -13,6 +13,21 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQ
 from TEAMZYRO import *
 from TEAMZYRO.unit.zyro_help import HELP_DATA  
 
+# 🔴 FIX: Load from Environment Variables safely
+SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "") 
+UPDATE_CHAT = os.getenv("UPDATE_CHAT", "")
+
+# 🔹 Helper function to ensure URL is valid for Telegram buttons
+def format_url(url: str):
+    if not url:
+        return None
+    url = str(url).strip()
+    if url.startswith("@"):
+        return f"https://t.me/{url[1:]}"
+    if not url.startswith("http"):
+        return f"https://{url}"
+    return url
+
 # 🔹 Function to Calculate Uptime
 START_TIME = time.time()
 
@@ -46,19 +61,23 @@ async def generate_start_message(client, message):
         [InlineKeyboardButton("🦋 Deploy To Your Squad ", url=f"https://t.me/{bot_user.username}?startgroup=true")]
     ]
     
-    # Conditionally add support/update buttons ONLY if they are valid URLs
+    # 🔴 FIX: Dynamically add support/update buttons using env variables and format_url
     social_buttons = []
-    if isinstance(SUPPORT_CHAT, str) and SUPPORT_CHAT.startswith("http"):
-        social_buttons.append(InlineKeyboardButton("💜 Support Mansion", url=SUPPORT_CHAT))
-    if isinstance(UPDATE_CHAT, str) and UPDATE_CHAT.startswith("http"):
-        social_buttons.append(InlineKeyboardButton("📢 Laboratory", url=UPDATE_CHAT))
+    
+    support_url = format_url(SUPPORT_CHAT)
+    if support_url:
+        social_buttons.append(InlineKeyboardButton("💜 Support Mansion", url=support_url))
+        
+    update_url = format_url(UPDATE_CHAT)
+    if update_url:
+        social_buttons.append(InlineKeyboardButton("📢 Laboratory", url=update_url))
     
     if social_buttons:
         buttons.append(social_buttons)
         
     buttons.extend([
         [InlineKeyboardButton("🧪 Training Manual", callback_data="open_help")],
-        [InlineKeyboardButton("Owner", url="https://t.me/xeno_kakarot")],
+        [InlineKeyboardButton("Owner", url="https://t.me/powerstar_frogie")],
     ])
     
     return caption, buttons
@@ -76,9 +95,10 @@ async def generate_group_start_message(client):
         [InlineKeyboardButton("🦋 Summon Me", url=f"https://t.me/{bot_user.username}?startgroup=true")]
     ]
     
-    # Check if support chat is a valid link before adding it to the group buttons
-    if isinstance(SUPPORT_CHAT, str) and SUPPORT_CHAT.startswith("http"):
-        buttons[0].append(InlineKeyboardButton("💜 Support", url=SUPPORT_CHAT))
+    # Safely format support chat for the group menu as well
+    support_url = format_url(SUPPORT_CHAT)
+    if support_url:
+        buttons[0].append(InlineKeyboardButton("💜 Support", url=support_url))
         
     return caption, buttons
 
@@ -206,3 +226,4 @@ async def back_to_home(client, query: CallbackQuery):
             reply_markup=InlineKeyboardMarkup(buttons),
             parse_mode=enums.ParseMode.HTML
         )
+        
