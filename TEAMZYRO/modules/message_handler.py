@@ -11,6 +11,10 @@ import asyncio
 import time
 
 async def message_counter(update: Update, context: CallbackContext) -> None:
+    # 🔴 FIX: Ignore updates that don't have a user or chat attached (prevents NoneType crash)
+    if not update.effective_user or not update.effective_chat:
+        return
+
     chat_id = str(update.effective_chat.id)
     user_id = update.effective_user.id
     current_time = time.time()
