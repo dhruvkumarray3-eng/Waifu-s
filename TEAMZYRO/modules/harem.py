@@ -16,16 +16,20 @@ from pyrogram import enums
 import asyncio
 import os  # For environment variables
 
-# Support channel ID or username (configurable via environment variable for Heroku)
-SUPPORT_CHANNEL = MUSJ_JOIN  # Default to your channel username
+# 🔴 FIX: Ensure SUPPORT_CHANNEL is treated as an integer if it's a numeric ID
+SUPPORT_CHANNEL = int(MUSJ_JOIN) if str(MUSJ_JOIN).lstrip('-').isdigit() else MUSJ_JOIN
 
 async def check_support_channel(client: Client, user_id: int) -> bool:
-    if user_id == x:
+    # Handle the 'x' owner variable safely if it exists
+    if 'x' in globals() and user_id == x:
         return True
         
     try:
-        await client.get_chat_member(SUPPORT_CHANNEL, user_id)
-        return True
+        member = await client.get_chat_member(SUPPORT_CHANNEL, user_id)
+        # 🔴 FIX: Explicitly allow Owners, Admins, and Members to pass
+        if member.status in [enums.ChatMemberStatus.OWNER, enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.MEMBER]:
+            return True
+        return False
     except UserNotParticipant:
         return False
     except ChatAdminRequired:
@@ -34,6 +38,33 @@ async def check_support_channel(client: Client, user_id: int) -> bool:
     except Exception as e:
         print(f"Error checking support channel membership: {e}")
         return False
+
+# 🔴 FIX: New Helper Function to generate beautiful barrier messages dynamically
+async def send_barrier_message(client: Client, event):
+    try:
+        # Fetch the chat dynamically to get its real title and invite link
+        chat = await client.get_chat(SUPPORT_CHANNEL)
+        chat_name = chat.title
+        if chat.username:
+            invite_link = f"https://t.me/{chat.username}"
+        else:
+            # If private, get or generate the invite link
+            invite_link = chat.invite_link or await client.export_chat_invite_link(SUPPORT_CHANNEL)
+    except Exception:
+        chat_name = "our Support Channel"
+        invite_link = SUPPORT_CHAT if 'SUPPORT_CHAT' in globals() else "https://t.me"
+
+    keyboard = [[InlineKeyboardButton("🦋 Join Wisteria Domain", url=invite_link)]]
+    text = (
+        f"🦋 <b>𝖶𝖨𝖲𝖳𝖤𝖱𝖨𝖠 𝖡𝖠𝖱𝖱𝖨𝖤𝖱</b>\n\n"
+        f"<blockquote>Ara ara~ To access your collection records, you must first pass through <b>{chat_name}</b>! Please join below.</blockquote>"
+    )
+    
+    if isinstance(event, Message):
+        await event.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=enums.ParseMode.HTML)
+    else:
+        # It's a CallbackQuery
+        await event.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=enums.ParseMode.HTML)
 
 
 async def fetch_user_characters(user_id):
@@ -51,14 +82,7 @@ async def harem_handler(client: Client, message: Message):
 
     # Check if the user is in the support channel
     if not await check_support_channel(client, user_id):
-        keyboard = [[InlineKeyboardButton("🦋 Join Wisteria Domain", url=f"https://t.me/{SUPPORT_CHANNEL.lstrip('@')}")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await message.reply_text(
-            f"🦋 <b>𝖶𝖨𝖲𝖳𝖤𝖱𝖨𝖠 𝖡𝖠𝖱𝖱𝖨𝖤𝖱</b>\n\n"
-            f"<blockquote>Ara ara~ To access your collection records, you must first pass through our support channel {SUPPORT_CHANNEL}! Please join below.</blockquote>",
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
+        await send_barrier_message(client, message)
         return
 
     # Proceed with existing logic if user is in the channel
@@ -70,7 +94,8 @@ async def harem_handler(client: Client, message: Message):
     # Delete the message after 3 minutes (180 seconds)
     await asyncio.sleep(180)
     try:
-        await msg.delete()
+        if msg:
+            await msg.delete()
     except Exception as e:
         print(f"Error deleting message: {e}")
 
@@ -78,14 +103,7 @@ async def display_harem(client, message, user_id, page, filter_rarity, is_initia
     try:
         # Check support channel membership again for callback queries
         if not is_initial and not await check_support_channel(client, user_id):
-            keyboard = [[InlineKeyboardButton("🦋 Join Wisteria Domain", url=f"https://t.me/{SUPPORT_CHANNEL.lstrip('@')}")]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await callback_query.message.edit_text(
-                f"🦋 <b>𝖶𝖨𝖲𝖳𝖤𝖱𝖨𝖠 𝖡𝖠𝖱𝖱𝖨𝖤𝖱</b>\n\n"
-                f"<blockquote>Your security seal expired~ Please join our support channel {SUPPORT_CHANNEL} to inspect your garden!</blockquote>",
-                reply_markup=reply_markup,
-                parse_mode=enums.ParseMode.HTML
-            )
+            await send_barrier_message(client, callback_query)
             return
 
         characters, error = await fetch_user_characters(user_id)
@@ -241,14 +259,7 @@ async def remove_filter_callback(client: Client, callback_query: CallbackQuery):
 
         # Check support channel membership
         if not await check_support_channel(client, user_id):
-            keyboard = [[InlineKeyboardButton("🦋 Join Wisteria Domain", url=f"https://t.me/{SUPPORT_CHANNEL.lstrip('@')}")]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await callback_query.message.edit_text(
-                f"🦋 <b>𝖶𝖨𝖲𝖳𝖤𝖱𝖨𝖠 𝖡𝖠𝖱𝖱𝖨𝖤𝖱</b>\n\n"
-                f"<blockquote>Please join our support channel {SUPPORT_CHANNEL} to manage your filters!</blockquote>",
-                reply_markup=reply_markup,
-                parse_mode=enums.ParseMode.HTML
-            )
+            await send_barrier_message(client, callback_query)
             return
 
         # Reset the filter to "All" in the database
@@ -285,14 +296,7 @@ async def hmode_handler(client: Client, message: Message):
 
     # Check support channel membership
     if not await check_support_channel(client, user_id):
-        keyboard = [[InlineKeyboardButton("🦋 Join Wisteria Domain", url=f"https://t.me/{SUPPORT_CHANNEL.lstrip('@')}")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await message.reply_text(
-            f"🦋 <b>𝖶𝖨𝖲𝖳𝖤𝖱𝖨𝖠 𝖡𝖠𝖱𝖱𝖨𝖤𝖱</b>\n\n"
-            f"<blockquote>Please join our support channel {SUPPORT_CHANNEL} to use this configurations tool!</blockquote>",
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
+        await send_barrier_message(client, message)
         return
 
     keyboard = []
@@ -327,14 +331,7 @@ async def set_rarity_callback(client: Client, callback_query: CallbackQuery):
 
         # Check support channel membership
         if not await check_support_channel(client, user_id):
-            keyboard = [[InlineKeyboardButton("🦋 Join Wisteria Domain", url=f"https://t.me/{SUPPORT_CHANNEL.lstrip('@')}")]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await callback_query.message.edit_text(
-                f"🦋 <b>𝖶𝖨𝖲𝖳𝖤𝖱𝖨𝖠 𝖡𝖠𝖱𝖱𝖨𝖤𝖱</b>\n\n"
-                f"<blockquote>Please join our support channel {SUPPORT_CHANNEL} to confirm these changes!</blockquote>",
-                reply_markup=reply_markup,
-                parse_mode=enums.ParseMode.HTML
-            )
+            await send_barrier_message(client, callback_query)
             return
 
         # Update the user's filter_rarity in the database
