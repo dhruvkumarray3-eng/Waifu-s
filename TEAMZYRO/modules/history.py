@@ -3,6 +3,7 @@
 # ==========================================
 
 import time
+import os
 from datetime import datetime
 from pyrogram import filters
 from pyrogram.types import Message
@@ -12,6 +13,9 @@ from TEAMZYRO import (
     app, db, user_collection, collection,
     group_user_totals_collection, OWNER_ID, BOT_LOGGING, require_power
 )
+
+# Load SUPPORT_CHAT from environment or config
+SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "")
 
 sudo_users = db["sudo_users"]
 START_TIME = time.time()
@@ -26,12 +30,32 @@ async def is_sudo_or_owner(user_id: int) -> bool:
 
 
 async def send_log(text: str):
+    """Sends logs to the private Bot Logging channel"""
     if not BOT_LOGGING:
         return
     try:
         await app.send_message(int(BOT_LOGGING) if str(BOT_LOGGING).lstrip("-").isdigit() else BOT_LOGGING, text)
     except Exception as e:
         print(f"[history] log failed: {e}")
+
+async def send_support_log(text: str):
+    """Sends logs to the public Support Chat"""
+    if not SUPPORT_CHAT:
+        return
+    try:
+        # Clean up the support chat string
+        chat_id = str(SUPPORT_CHAT).strip()
+        
+        # If it's a public link, convert it to an @username
+        if "t.me/" in chat_id and "+" not in chat_id:
+            chat_id = "@" + chat_id.split("t.me/")[1].strip("/")
+            
+        # Convert to integer if it's a numeric ID (-100...)
+        actual_chat_id = int(chat_id) if chat_id.lstrip("-").isdigit() else chat_id
+        
+        await app.send_message(actual_chat_id, text, disable_web_page_preview=True)
+    except Exception as e:
+        print(f"[history] support log failed (Ensure the bot is an admin in the support chat!): {e}")
 
 
 def get_uptime() -> str:
@@ -105,9 +129,6 @@ async def bot_data_cmd(client, message: Message):
 
 # =========================================================
 # /cgrant  –  Owner gifts any character to a user
-# Usage:
-#   Reply:  /cgrant <character_id>
-#   Or:     /cgrant <user_id> <character_id>
 # =========================================================
 @app.on_message(filters.command(["cgrant", "grantchar"]))
 async def cgrant_cmd(client, message: Message):
@@ -192,6 +213,7 @@ async def cgrant_cmd(client, message: Message):
     except Exception:
         pass
 
+    # Keep this going to the private BOT_LOGGING chat
     await send_log(
         f"#cgrant\n\n"
         f"Owner granted character `{char.get('id')}` ({name}) to user `{target_id}`."
@@ -199,7 +221,7 @@ async def cgrant_cmd(client, message: Message):
 
 
 # =========================================================
-# LOGS: Group join / leave / bot start
+# LOGS: Group join / leave / bot start (Sent to Support Chat)
 # =========================================================
 @app.on_message(filters.new_chat_members)
 async def history_new_members(client, message: Message):
@@ -225,7 +247,8 @@ async def history_new_members(client, message: Message):
         f"👥 <b>Members:</b> {members}\n"
         f"➕ <b>Added by:</b> {added_by}"
     )
-    await send_log(text)
+    # Send to support chat instead of private log
+    await send_support_log(text)
 
     # Optional: track group in DB
     await group_user_totals_collection.update_one(
@@ -253,7 +276,8 @@ async def history_left_member(client, message: Message):
         f"🆔 <b>Chat ID:</b> <code>{chat_id}</code>\n"
         f"➖ <b>Removed by:</b> {removed_by}"
     )
-    await send_log(text)
+    # Send to support chat instead of private log
+    await send_support_log(text)
 
 
 @app.on_message(filters.command("start") & filters.private)
@@ -267,4 +291,6 @@ async def history_start_log(client, message: Message):
         f"🔗 <b>Username:</b> @{u.username if u.username else 'none'}\n"
         f"📅 <b>Time:</b> {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
     )
-    await send_log(text)
+    # Send to support chat instead of private log
+    await send_support_log(text)
+    
