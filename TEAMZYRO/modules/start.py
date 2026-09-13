@@ -43,12 +43,23 @@ async def generate_start_message(client, message):
     )
 
     buttons = [
-        [InlineKeyboardButton("🦋 Deploy To Your Squad ", url=f"https://t.me/{bot_user.username}?startgroup=true")],
-        [InlineKeyboardButton("💜 Support Mansion", url=SUPPORT_CHAT), 
-         InlineKeyboardButton("📢 Laboratory", url=UPDATE_CHAT)],
-        [InlineKeyboardButton("🧪 Training Manual", callback_data="open_help")],
-        [InlineKeyboardButton("Owner", url=f"https://t.me/xeno_kakarot")],
+        [InlineKeyboardButton("🦋 Deploy To Your Squad ", url=f"https://t.me/{bot_user.username}?startgroup=true")]
     ]
+    
+    # Conditionally add support/update buttons ONLY if they are valid URLs
+    social_buttons = []
+    if isinstance(SUPPORT_CHAT, str) and SUPPORT_CHAT.startswith("http"):
+        social_buttons.append(InlineKeyboardButton("💜 Support Mansion", url=SUPPORT_CHAT))
+    if isinstance(UPDATE_CHAT, str) and UPDATE_CHAT.startswith("http"):
+        social_buttons.append(InlineKeyboardButton("📢 Laboratory", url=UPDATE_CHAT))
+    
+    if social_buttons:
+        buttons.append(social_buttons)
+        
+    buttons.extend([
+        [InlineKeyboardButton("🧪 Training Manual", callback_data="open_help")],
+        [InlineKeyboardButton("Owner", url="https://t.me/xeno_kakarot")],
+    ])
     
     return caption, buttons
 
@@ -60,12 +71,15 @@ async def generate_group_start_message(client):
         f"<blockquote>I am currently monitoring this chat area to detect and expose hidden demons through message flows.\n\n"
         f"Use /help to access my specialized medical and combat manuals!</i></blockquote>"
     )
+    
     buttons = [
-        [
-            InlineKeyboardButton("🦋 Summon Me", url=f"https://t.me/{bot_user.username}?startgroup=true"),
-            InlineKeyboardButton("💜 Support", url=SUPPORT_CHAT)
-        ]
+        [InlineKeyboardButton("🦋 Summon Me", url=f"https://t.me/{bot_user.username}?startgroup=true")]
     ]
+    
+    # Check if support chat is a valid link before adding it to the group buttons
+    if isinstance(SUPPORT_CHAT, str) and SUPPORT_CHAT.startswith("http"):
+        buttons[0].append(InlineKeyboardButton("💜 Support", url=SUPPORT_CHAT))
+        
     return caption, buttons
 
 # 🔹 Send Media (Helper)
@@ -95,10 +109,15 @@ async def start_private_command(client, message):
     caption, buttons = await generate_start_message(client, message)
     media = random.choice(START_MEDIA)
 
-    await app.send_message(
-        chat_id=BOT_LOGGING,
-        text=f"{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ ᴛᴏ ᴄʜᴇᴄᴋ <b>sᴜᴅᴏʟɪsᴛ</b>.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}",
-    )
+    # Only attempt to log if BOT_LOGGING is properly configured
+    if BOT_LOGGING:
+        try:
+            await app.send_message(
+                chat_id=BOT_LOGGING,
+                text=f"{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ ᴛᴏ ᴄʜᴇᴄᴋ <b>sᴜᴅᴏʟɪsᴛ</b>.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}",
+            )
+        except Exception as e:
+            print(f"Failed to send start log to BOT_LOGGING: {e}")
 
     await send_media_message(message, media, caption, buttons)
 
