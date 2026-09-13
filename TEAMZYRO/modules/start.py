@@ -22,6 +22,12 @@ def format_url(url: str):
     if not url:
         return None
     url = str(url).strip()
+    
+    # 🔴 FIX: If the variable is a raw Telegram ID (like -100123456789), it's invalid for a button URL.
+    if url.replace("-", "").isdigit():
+        print(f"Warning: SUPPORT_CHAT is a numeric ID ({url}). Button hidden to prevent crash.")
+        return None
+        
     if url.startswith("@"):
         return f"https://t.me/{url[1:]}"
     if not url.startswith("http"):
@@ -77,7 +83,7 @@ async def generate_start_message(client, message):
         
     buttons.extend([
         [InlineKeyboardButton("🧪 Training Manual", callback_data="open_help")],
-        [InlineKeyboardButton("Owner", url="https://t.me/powerstar_frogie")],
+        [InlineKeyboardButton("Owner", url="https://t.me/xeno_kakarot")],
     ])
     
     return caption, buttons
