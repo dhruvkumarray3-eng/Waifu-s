@@ -13,8 +13,8 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQ
 from TEAMZYRO import *
 from TEAMZYRO.unit.zyro_help import HELP_DATA  
 
-# 🔴 FIX: Load from Environment Variables safely
-SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "") 
+# 🔴 FIX: Hardcoded the support chat and owner as requested
+SUPPORT_CHAT = "https://t.me/+cYkP7lDW0uY4MzVl"
 UPDATE_CHAT = os.getenv("UPDATE_CHAT", "")
 
 # 🔹 Helper function to ensure URL is valid for Telegram buttons
@@ -23,9 +23,8 @@ def format_url(url: str):
         return None
     url = str(url).strip()
     
-    # 🔴 FIX: If the variable is a raw Telegram ID (like -100123456789), it's invalid for a button URL.
+    # If the variable is a raw Telegram ID (like -100123456789), it's invalid for a button URL.
     if url.replace("-", "").isdigit():
-        print(f"Warning: SUPPORT_CHAT is a numeric ID ({url}). Button hidden to prevent crash.")
         return None
         
     if url.startswith("@"):
@@ -67,7 +66,7 @@ async def generate_start_message(client, message):
         [InlineKeyboardButton("🦋 Deploy To Your Squad ", url=f"https://t.me/{bot_user.username}?startgroup=true")]
     ]
     
-    # 🔴 FIX: Dynamically add support/update buttons using env variables and format_url
+    # Dynamically add support/update buttons
     social_buttons = []
     
     support_url = format_url(SUPPORT_CHAT)
@@ -83,7 +82,8 @@ async def generate_start_message(client, message):
         
     buttons.extend([
         [InlineKeyboardButton("🧪 Training Manual", callback_data="open_help")],
-        [InlineKeyboardButton("Owner", url="https://t.me/xeno_kakarot")],
+        # 🔴 FIX: Updated Owner link to powerstar_frogie
+        [InlineKeyboardButton("Owner", url="https://t.me/powerstar_frogie")],
     ])
     
     return caption, buttons
