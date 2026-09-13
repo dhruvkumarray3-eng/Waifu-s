@@ -10,6 +10,8 @@ from pyrogram import Client, filters
 from pymongo import ReturnDocument
 from gridfs import GridFS
 from TEAMZYRO import application, DATABASE_ID, SUPPORT_CHAT, OWNER_ID, collection, user_collection, db, rarity_map, ZYRO, require_power, IMGBB_API_KEY
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import asyncio
 
 # Define the wrong format message and rarity map
 WRONG_FORMAT_TEXT = """Wrong ❌ format...  eg. /upload reply to photo muzan-kibutsuji Demon-slayer 3
@@ -92,8 +94,6 @@ def upload_to_catbox(file_path=None, file_url=None, expires=None, secret=None):
             raise Exception(f"Error uploading to Catbox: {response.text}")
 
 
-# IMGBB_API_KEY imported from TEAMZYRO
-
 def upload_to_imgbb(file_path: str) -> str:
     if not os.path.exists(file_path):
         raise Exception(f"Invalid file path: {file_path}")
@@ -136,8 +136,6 @@ async def ul(client, message):
             )
 
 
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
 @ZYRO.on_message(filters.command("server"))
 @require_power("add")
 async def select_server(client, message):
@@ -177,8 +175,6 @@ async def server_callback(client, callback_query):
         await callback_query.edit_message_text("Upload server set to Catbox ✅", reply_markup=buttons)
         await callback_query.answer("Upload server set to Catbox ✅", show_alert=True)
 
-
-import asyncio
 
 upload_lock = asyncio.Lock()  # Lock for handling concurrent uploads
 
@@ -260,10 +256,13 @@ async def ul_main(client, message):
                     character['thum_url'] = thumbnail_url
                     os.remove(thumbnail_path)  # Clean up the thumbnail file
 
-                # Send character details to the channel
+                # 🔴 FIX: Safely convert DATABASE_ID to an integer if it's a numeric ID string
+                actual_chat_id = int(DATABASE_ID) if str(DATABASE_ID).lstrip('-').isdigit() else DATABASE_ID
+
+                # Send character details to the channel using the safe chat ID
                 if reply.photo or reply.document:
                     await client.send_photo(
-                        chat_id=DATABASE_ID,
+                        chat_id=actual_chat_id,
                         photo=file_url,
                         caption=(
                             f"Character Name: {character_name}\n"
@@ -275,7 +274,7 @@ async def ul_main(client, message):
                     )
                 elif reply.video:
                     await client.send_video(
-                        chat_id=DATABASE_ID,
+                        chat_id=actual_chat_id,
                         video=file_url,
                         caption=(
                             f"Character Name: {character_name}\n"
@@ -288,13 +287,18 @@ async def ul_main(client, message):
 
                 # Insert character into the database
                 await collection.insert_one(character)
+                
+                # Delete the "processing..." message
+                await processing_message.delete()
+                
                 await message.reply_text(
                     f"➲ ᴀᴅᴅᴇᴅ ʙʏ» [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
                     f"➥ Character ID: {available_id}\n"
                     f"➥ Rarity: {rarity_text}"
                 )
             except Exception as e:
-                await message.reply_text(f"Character Upload Unsuccessful. Error: {str(e)}")
+                # Update the processing message with the error instead of leaving it there
+                await processing_message.edit_text(f"Character Upload Unsuccessful. Error: {str(e)}")
             finally:
                 try:
                     os.remove(path)  # Clean up the downloaded file
@@ -302,5 +306,4 @@ async def ul_main(client, message):
                     pass
         else:
             await message.reply_text("Please reply to a photo, document, or video.")
-
 
