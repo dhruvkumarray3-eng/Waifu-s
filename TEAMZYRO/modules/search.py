@@ -1,27 +1,53 @@
 # ==========================================
-# search.py – /search by anime or character name
+# search.py – /search → character card + Who Have It
 # ==========================================
 
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 from pyrogram.enums import ParseMode
-from TEAMZYRO import app, collection
+from TEAMZYRO import app, collection, user_collection
 
-# rarity emoji map (fallback if rarity_map2 missing)
 try:
     from TEAMZYRO import rarity_map2 as rarity_map
 except Exception:
     rarity_map = {}
 
 
-async def run_search(query: str, page: int = 1, anime_only: bool = False):
-    """Search DB by name and/or anime. Returns (characters, total, error)."""
+def char_caption(c: dict) -> str:
+    return (
+        f"🌟 **Character Info**\n"
+        f"🆔 ID: `{c.get('id', '?')}`\n"
+        f"📛 Name: {c.get('name', '?')}\n"
+        f"📺 Anime: {c.get('anime', '?')}\n"
+        f"💎 Rarity: {c.get('rarity', '?')}\n"
+    )
+
+
+def build_keyboard(char_id: str, query: str, index: int, total: int, anime_only: bool):
+    flag = "1" if anime_only else "0"
+    row = []
+    if index > 0:
+        row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"srch|{query}|{index - 1}|{flag}"))
+    if index < total - 1:
+        row.append(InlineKeyboardButton("Next ➡️", callback_data=f"srch|{query}|{index + 1}|{flag}"))
+
+    buttons = []
+    if row:
+        buttons.append(row)
+
+    buttons.append([
+        InlineKeyboardButton("👥 Who Have It", callback_data=f"whohaveit_{char_id}"),
+    ])
+    buttons.append([
+        InlineKeyboardButton("🔎 Inline Search", switch_inline_query_current_chat=query),
+    ])
+    return InlineKeyboardMarkup(buttons)
+
+
+async def find_chars(query: str, anime_only: bool = False):
     query = (query or "").strip()
     if not query:
-        return [], 0, "Please provide a name.\n\nUsage:\n`/search Nezuko`\n`/search Demon Slayer`\n`/search anime Jujutsu`"
-
-    per_page = 10
-    skip = (page - 1) * per_page
+        return []
 
     if anime_only:
         filt = {"anime": {"$regex": query, "$options": "i"}}
@@ -33,133 +59,161 @@ async def run_search(query: str, page: int = 1, anime_only: bool = False):
             ]
         }
 
-    total = await collection.count_documents(filt)
-    if total == 0:
-        return [], 0, f"No results for: **{query}**"
-
-    chars = await (
+    return await (
         collection.find(filt)
         .sort([("anime", 1), ("id", 1)])
-        .skip(skip)
-        .limit(per_page)
-        .to_list(length=per_page)
-    )
-    return chars, total, None
-
-
-def build_response(query: str, characters: list, total: int, page: int, anime_only: bool):
-    per_page = 10
-    skip = (page - 1) * per_page
-    mode = "Anime" if anime_only else "Name/Anime"
-
-    text = (
-        f"🔍 **Search** ({mode})\n"
-        f"Query: `{query}`\n"
-        f"**Total:** {total}  |  **Page:** {page}\n\n"
+        .to_list(length=50)  # max 50 results to browse
     )
 
-    for i, c in enumerate(characters, start=1 + skip):
-        emoji = rarity_map.get(c.get("rarity"), "❓")
-        text += (
-            f"◈⌠{emoji}⌡ **{c.get('name', '?')}**\n"
-            f"   📺 {c.get('anime', '?')}\n"
-            f"   🆔 `{c.get('id', '?')}`  |  {c.get('rarity', '?')}\n\n"
-        )
 
-    # callback data: searchpage|query|page|0or1
-    flag = "1" if anime_only else "0"
-    buttons = []
-    row = []
-    if page > 1:
-        row.append(
-            InlineKeyboardButton(
-                "⬅️ Back",
-                callback_data=f"searchpage|{query}|{page - 1}|{flag}",
-            )
-        )
-    if skip + per_page < total:
-        row.append(
-            InlineKeyboardButton(
-                "➡️ Next",
-                callback_data=f"searchpage|{query}|{page + 1}|{flag}",
-            )
-        )
-    if row:
-        buttons.append(row)
+async def send_char_card(message: Message, c: dict, query: str, index: int, total: int, anime_only: bool, edit: bool = False):
+    caption = char_caption(c) + f"\n📄 Result **{index + 1}/{total}**"
+    kb = build_keyboard(str(c.get("id")), query, index, total, anime_only)
 
-    # Inline tip button (opens bot inline with same query)
-    buttons.append([
-        InlineKeyboardButton(
-            "🔎 Open Inline Search",
-            switch_inline_query_current_chat=query,
-        )
-    ])
+    media = c.get("vid_url") or c.get("img_url")
+    is_video = bool(c.get("vid_url"))
 
-    return text, InlineKeyboardMarkup(buttons) if buttons else None
+    try:
+        if edit:
+            # For edit we only change caption + buttons (media stays)
+            await message.edit_caption(caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+            return
+
+        if is_video:
+            await message.reply_video(video=media, caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+        elif media:
+            await message.reply_photo(photo=media, caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+        else:
+            await message.reply_text(caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+    except Exception:
+        # fallback text
+        if edit:
+            await message.edit_text(caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+        else:
+            await message.reply_text(caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
 
 
 # ---------- /search ----------
 @app.on_message(filters.command(["search", "find", "s"]))
 async def search_cmd(client, message: Message):
     args = message.command
+
+    # No args → open inline in this chat
     if len(args) < 2:
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔎 Open Inline Search", switch_inline_query_current_chat="")]
+        ])
         return await message.reply_text(
-            "🔍 **Character / Anime Search**\n\n"
-            "Usage:\n"
-            "`/search <name>` – search name **or** anime\n"
-            "`/search anime <anime name>` – anime only\n\n"
-            "Examples:\n"
+            "🔍 Tap below to search characters **inline**.\n\n"
+            "Or use:\n"
             "`/search Nezuko`\n"
             "`/search Demon Slayer`\n"
-            "`/search anime Jujutsu Kaisen`\n\n"
-            "Inline: type `@YourBotName Demon Slayer` in any chat.",
+            "`/search anime Jujutsu`",
+            reply_markup=kb,
             parse_mode=ParseMode.MARKDOWN,
         )
 
     anime_only = False
     if args[1].lower() == "anime":
         if len(args) < 3:
-            return await message.reply_text(
-                "Usage: `/search anime <anime name>`",
-                parse_mode=ParseMode.MARKDOWN,
-            )
+            return await message.reply_text("Usage: `/search anime <anime name>`", parse_mode=ParseMode.MARKDOWN)
         anime_only = True
         query = " ".join(args[2:]).strip()
     else:
         query = " ".join(args[1:]).strip()
 
-    characters, total, err = await run_search(query, page=1, anime_only=anime_only)
-    if err:
-        return await message.reply_text(err, parse_mode=ParseMode.MARKDOWN)
+    chars = await find_chars(query, anime_only=anime_only)
+    if not chars:
+        return await message.reply_text(f"❌ No characters found for: **{query}**", parse_mode=ParseMode.MARKDOWN)
 
-    text, markup = build_response(query, characters, total, 1, anime_only)
-    await message.reply_text(text, reply_markup=markup, parse_mode=ParseMode.MARKDOWN)
+    # Show first result as full character card
+    await send_char_card(message, chars[0], query, 0, len(chars), anime_only, edit=False)
 
 
-# ---------- Pagination ----------
-@app.on_callback_query(filters.regex(r"^searchpage\|"))
-async def search_page_cb(client, callback_query: CallbackQuery):
+# ---------- Next / Prev ----------
+@app.on_callback_query(filters.regex(r"^srch\|"))
+async def search_nav_cb(client, callback_query: CallbackQuery):
     try:
-        # searchpage|query|page|flag
+        # srch|query|index|flag
         parts = callback_query.data.split("|", 3)
         if len(parts) < 4:
-            return await callback_query.answer("Invalid data.", show_alert=True)
+            return await callback_query.answer("Invalid.", show_alert=True)
 
-        _, query, page_s, flag = parts
-        page = int(page_s)
+        _, query, index_s, flag = parts
+        index = int(index_s)
         anime_only = flag == "1"
 
-        characters, total, err = await run_search(query, page=page, anime_only=anime_only)
-        if err:
-            await callback_query.message.edit_text(err, parse_mode=ParseMode.MARKDOWN)
-            return await callback_query.answer()
+        chars = await find_chars(query, anime_only=anime_only)
+        if not chars:
+            return await callback_query.answer("No results.", show_alert=True)
 
-        text, markup = build_response(query, characters, total, page, anime_only)
-        await callback_query.message.edit_text(
-            text,
-            reply_markup=markup,
-            parse_mode=ParseMode.MARKDOWN,
-        )
+        if index < 0 or index >= len(chars):
+            return await callback_query.answer("No more results.", show_alert=True)
+
+        c = chars[index]
+        caption = char_caption(c) + f"\n📄 Result **{index + 1}/{len(chars)}**"
+        kb = build_keyboard(str(c.get("id")), query, index, len(chars), anime_only)
+
+        # Try replace media if photo/video changes
+        media = c.get("vid_url") or c.get("img_url")
+        try:
+            if c.get("vid_url"):
+                from pyrogram.types import InputMediaVideo
+                await callback_query.message.edit_media(
+                    media=InputMediaVideo(media, caption=caption, parse_mode=ParseMode.MARKDOWN),
+                    reply_markup=kb,
+                )
+            elif media:
+                from pyrogram.types import InputMediaPhoto
+                await callback_query.message.edit_media(
+                    media=InputMediaPhoto(media, caption=caption, parse_mode=ParseMode.MARKDOWN),
+                    reply_markup=kb,
+                )
+            else:
+                await callback_query.message.edit_caption(
+                    caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+                )
+        except Exception:
+            await callback_query.message.edit_caption(
+                caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+            )
+
         await callback_query.answer()
     except Exception as e:
         await callback_query.answer(f"Error: {e}", show_alert=True)
+
+
+# ---------- Who Have It (same style as /check) ----------
+# If check.py already has this handler, delete THIS block to avoid double handlers.
+@app.on_callback_query(filters.regex(r"^whohaveit_"))
+async def who_have_it_search(client, callback_query: CallbackQuery):
+    character_id = callback_query.data.split("_", 1)[1]
+
+    users = await user_collection.find({"characters.id": character_id}).to_list(length=10)
+    if not users:
+        return await callback_query.answer("No one owns this character yet!", show_alert=True)
+
+    owner_text = "\n\n**🏆 Top owners:**\n"
+    for i, user in enumerate(users, 1):
+        user_name = user.get("first_name", "Unknown")
+        count = sum(1 for ch in user.get("characters", []) if str(ch.get("id")) == str(character_id))
+        owner_text += f"{i}. [{user_name}](tg://user?id={user['id']}) — x{count}\n"
+
+    old = callback_query.message.caption or ""
+    # Don't stack list multiple times
+    if "🏆 Top owners" in old:
+        base = old.split("🏆 Top owners")[0].rstrip()
+    else:
+        base = old
+
+    try:
+        await callback_query.message.edit_caption(
+            caption=base + owner_text,
+            reply_markup=callback_query.message.reply_markup,
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    except Exception:
+        await callback_query.answer("Could not update caption.", show_alert=True)
+        return
+
+    await callback_query.answer()
