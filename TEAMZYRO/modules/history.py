@@ -1,27 +1,28 @@
-# ==========================================
-# history.py  –  Bot stats, cgrant, join/leave/start logs
+tes# ==========================================
+# history.py
+# /data, /cgrant, join/leave logs, /start log only
 # ==========================================
 
 import time
-import os
 from datetime import datetime
 from pyrogram import filters
 from pyrogram.types import Message
-from pyrogram.enums import ParseMode, ChatMemberStatus
+from pyrogram.enums import ParseMode
 
 from TEAMZYRO import (
-    app, db, user_collection, collection,
-    group_user_totals_collection, OWNER_ID, BOT_LOGGING, require_power
+    app,
+    db,
+    user_collection,
+    collection,
+    group_user_totals_collection,
+    OWNER_ID,
+    BOT_LOGGING,
 )
-
-# Load SUPPORT_CHAT from environment or config
-SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "")
 
 sudo_users = db["sudo_users"]
 START_TIME = time.time()
 
 
-# ---------- helpers ----------
 async def is_sudo_or_owner(user_id: int) -> bool:
     if user_id == OWNER_ID:
         return True
@@ -30,32 +31,13 @@ async def is_sudo_or_owner(user_id: int) -> bool:
 
 
 async def send_log(text: str):
-    """Sends logs to the private Bot Logging channel"""
     if not BOT_LOGGING:
         return
     try:
-        await app.send_message(int(BOT_LOGGING) if str(BOT_LOGGING).lstrip("-").isdigit() else BOT_LOGGING, text)
+        chat = int(BOT_LOGGING) if str(BOT_LOGGING).lstrip("-").isdigit() else BOT_LOGGING
+        await app.send_message(chat, text)
     except Exception as e:
         print(f"[history] log failed: {e}")
-
-async def send_support_log(text: str):
-    """Sends logs to the public Support Chat"""
-    if not SUPPORT_CHAT:
-        return
-    try:
-        # Clean up the support chat string
-        chat_id = str(SUPPORT_CHAT).strip()
-        
-        # If it's a public link, convert it to an @username
-        if "t.me/" in chat_id and "+" not in chat_id:
-            chat_id = "@" + chat_id.split("t.me/")[1].strip("/")
-            
-        # Convert to integer if it's a numeric ID (-100...)
-        actual_chat_id = int(chat_id) if chat_id.lstrip("-").isdigit() else chat_id
-        
-        await app.send_message(actual_chat_id, text, disable_web_page_preview=True)
-    except Exception as e:
-        print(f"[history] support log failed (Ensure the bot is an admin in the support chat!): {e}")
 
 
 def get_uptime() -> str:
@@ -68,43 +50,35 @@ def get_uptime() -> str:
     return f"{h}h {m}m {sec}s"
 
 
-# =========================================================
-# /data  –  Bot statistics (Owner + Sudo only)
-# =========================================================
+# ===================== /data =====================
 @app.on_message(filters.command(["data", "botdata", "botstats"]))
 async def bot_data_cmd(client, message: Message):
-    if not await is_sudo_or_owner(message.from_user.id):
+    if not message.from_user or not await is_sudo_or_owner(message.from_user.id):
         return await message.reply("⚠️ Only **Owner / Sudo** can use this command.")
 
     status = await message.reply("📊 Collecting statistics...")
 
     try:
         total_users = await user_collection.count_documents({})
-        total_chars_db = await collection.count_documents({})  # master character pool
+        total_chars_db = await collection.count_documents({})
 
-        # Total characters owned by all users (sum of lengths)
         pipeline = [
             {"$project": {"count": {"$size": {"$ifNull": ["$characters", []]}}}},
-            {"$group": {"_id": None, "total": {"$sum": "$count"}}}
+            {"$group": {"_id": None, "total": {"$sum": "$count"}}},
         ]
         owned_agg = await user_collection.aggregate(pipeline).to_list(1)
         total_owned = owned_agg[0]["total"] if owned_agg else 0
 
-        # Groups where bot is tracked
         total_groups = await group_user_totals_collection.count_documents({})
-
-        # Users with at least 1 character
         users_with_chars = await user_collection.count_documents(
             {"characters.0": {"$exists": True}}
         )
 
-        # Total balance in economy
         bal_agg = await user_collection.aggregate([
             {"$group": {"_id": None, "total": {"$sum": {"$ifNull": ["$balance", 0]}}}}
         ]).to_list(1)
         total_balance = bal_agg[0]["total"] if bal_agg else 0
 
-        # Sudo count
         sudo_count = await sudo_users.count_documents({})
 
         text = (
@@ -124,15 +98,16 @@ async def bot_data_cmd(client, message: Message):
         )
         await status.edit_text(text, parse_mode=ParseMode.HTML)
     except Exception as e:
-        await status.edit_text(f"❌ Error while collecting stats:\n<code>{e}</code>", parse_mode=ParseMode.HTML)
+        await status.edit_text(
+            f"❌ Error while collecting stats:\n<code>{e}</code>",
+            parse_mode=ParseMode.HTML,
+        )
 
 
-# =========================================================
-# /cgrant  –  Owner gifts any character to a user
-# =========================================================
+# ===================== /cgrant =====================
 @app.on_message(filters.command(["cgrant", "grantchar"]))
 async def cgrant_cmd(client, message: Message):
-    if message.from_user.id != OWNER_ID:
+    if not message.from_user or message.from_user.id != OWNER_ID:
         return await message.reply("⚠️ Only the **bot owner** can use /cgrant.")
 
     args = message.command
@@ -143,16 +118,16 @@ async def cgrant_cmd(client, message: Message):
         target_id = message.reply_to_message.from_user.id
         if len(args) != 2:
             return await message.reply(
-                "Usage (reply):\n`/cgrant <character_id>`\n\nExample:\n`/cgrant 05`",
-                parse_mode=ParseMode.MARKDOWN
+                "Usage (reply):\n`/cgrant <character_id>`",
+                parse_mode=ParseMode.MARKDOWN,
             )
         char_id = args[1]
     else:
         if len(args) != 3:
             return await message.reply(
                 "Usage:\n`/cgrant <user_id> <character_id>`\n"
-                "Or reply to a user:\n`/cgrant <character_id>`",
-                parse_mode=ParseMode.MARKDOWN
+                "Or reply:\n`/cgrant <character_id>`",
+                parse_mode=ParseMode.MARKDOWN,
             )
         try:
             target_id = int(args[1])
@@ -160,29 +135,27 @@ async def cgrant_cmd(client, message: Message):
             return await message.reply("❌ Invalid user ID.")
         char_id = args[2]
 
-    # Find character in master DB
     char = await collection.find_one({"id": str(char_id)})
     if not char:
-        # try without zero-pad / with zero-pad
-        char = await collection.find_one({"id": char_id.zfill(2)})
+        char = await collection.find_one({"id": str(char_id).zfill(2)})
     if not char:
-        return await message.reply(f"❌ Character `{char_id}` not found in database.", parse_mode=ParseMode.MARKDOWN)
+        return await message.reply(
+            f"❌ Character `{char_id}` not found.",
+            parse_mode=ParseMode.MARKDOWN,
+        )
 
-    # Ensure user exists
     user = await user_collection.find_one({"id": target_id})
     if not user:
-        # create minimal user doc
         await user_collection.insert_one({
             "id": target_id,
             "characters": [],
-            "balance": 0
+            "balance": 0,
         })
 
-    # Push character (full copy, keep original fields)
     char_copy = {k: v for k, v in char.items() if k != "_id"}
     await user_collection.update_one(
         {"id": target_id},
-        {"$push": {"characters": char_copy}}
+        {"$push": {"characters": char_copy}},
     )
 
     name = char.get("name", "Unknown")
@@ -190,16 +163,15 @@ async def cgrant_cmd(client, message: Message):
     anime = char.get("anime", "?")
 
     await message.reply(
-        f"✅ Granted character to user!\n\n"
+        f"✅ Granted character!\n\n"
         f"👤 User: <code>{target_id}</code>\n"
         f"🆔 ID: <code>{char.get('id')}</code>\n"
         f"📛 Name: <b>{name}</b>\n"
         f"📺 Anime: {anime}\n"
         f"💎 Rarity: {rarity}",
-        parse_mode=ParseMode.HTML
+        parse_mode=ParseMode.HTML,
     )
 
-    # Notify user in DM
     try:
         await client.send_message(
             target_id,
@@ -208,21 +180,17 @@ async def cgrant_cmd(client, message: Message):
             f"📛 <b>{name}</b>\n"
             f"📺 {anime}\n"
             f"💎 {rarity}",
-            parse_mode=ParseMode.HTML
+            parse_mode=ParseMode.HTML,
         )
     except Exception:
         pass
 
-    # Keep this going to the private BOT_LOGGING chat
     await send_log(
-        f"#cgrant\n\n"
-        f"Owner granted character `{char.get('id')}` ({name}) to user `{target_id}`."
+        f"#cgrant\n\nOwner granted `{char.get('id')}` ({name}) to `{target_id}`."
     )
 
 
-# =========================================================
-# LOGS: Group join / leave / bot start (Sent to Support Chat)
-# =========================================================
+# ===================== JOIN / LEAVE LOGS =====================
 @app.on_message(filters.new_chat_members)
 async def history_new_members(client, message: Message):
     me = await client.get_me()
@@ -247,15 +215,22 @@ async def history_new_members(client, message: Message):
         f"👥 <b>Members:</b> {members}\n"
         f"➕ <b>Added by:</b> {added_by}"
     )
-    # Send to support chat instead of private log
-    await send_support_log(text)
+    await send_log(text)
 
-    # Optional: track group in DB
-    await group_user_totals_collection.update_one(
-        {"group_id": str(chat_id)},
-        {"$set": {"title": title, "username": message.chat.username, "joined_at": datetime.utcnow()}},
-        upsert=True
-    )
+    try:
+        await group_user_totals_collection.update_one(
+            {"group_id": str(chat_id)},
+            {
+                "$set": {
+                    "title": title,
+                    "username": message.chat.username,
+                    "joined_at": datetime.utcnow(),
+                }
+            },
+            upsert=True,
+        )
+    except Exception:
+        pass
 
 
 @app.on_message(filters.left_chat_member)
@@ -276,14 +251,16 @@ async def history_left_member(client, message: Message):
         f"🆔 <b>Chat ID:</b> <code>{chat_id}</code>\n"
         f"➖ <b>Removed by:</b> {removed_by}"
     )
-    # Send to support chat instead of private log
-    await send_support_log(text)
+    await send_log(text)
 
 
-@app.on_message(filters.command("start") & filters.private)
+# ===================== /start LOG ONLY (group=50) =====================
+@app.on_message(filters.command("start") & filters.private, group=50)
 async def history_start_log(client, message: Message):
-    """Extra start log (start.py already has one – this is a clean detailed version)."""
+    """Only log — does NOT reply to user. start.py handles the welcome."""
     u = message.from_user
+    if not u:
+        return
     text = (
         f"#START\n\n"
         f"👤 <b>User:</b> {u.mention}\n"
@@ -291,6 +268,7 @@ async def history_start_log(client, message: Message):
         f"🔗 <b>Username:</b> @{u.username if u.username else 'none'}\n"
         f"📅 <b>Time:</b> {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
     )
-    # Send to support chat instead of private log
-    await send_support_log(text)
-    
+    try:
+        await send_log(text)
+    except Exception as e:
+        print(f"[history start log] {e}")
