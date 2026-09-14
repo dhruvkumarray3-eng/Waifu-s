@@ -1,6 +1,6 @@
 # ==========================================
 # Creator: MrZyro
-# start.py – support group included
+# start.py – support group: https://t.me/+cYkP7lDW0uY4MzVl
 # ==========================================
 
 import os
@@ -11,11 +11,8 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQ
 from TEAMZYRO import *
 from TEAMZYRO.unit.zyro_help import HELP_DATA
 
-# Support group (invite link)
-SUPPORT_CHAT = os.getenv(
-    "SUPPORT_CHAT",
-    "https://t.me/+cYkP7lDW0uY4MzVl",  # your support group
-)
+# Fixed support group invite
+SUPPORT_CHAT = "https://t.me/+cYkP7lDW0uY4MzVl"
 UPDATE_CHAT = os.getenv("UPDATE_CHAT", "")
 OWNER_URL = "https://t.me/powerstar_frogie"
 
@@ -42,7 +39,7 @@ def format_url(url: str):
     elif url.startswith("+"):
         url = f"https://t.me/{url}"
     elif not url.startswith("http://") and not url.startswith("https://"):
-        if " " in url or ("/" in url and not url.startswith("t.me")):
+        if " " in url:
             return None
         url = f"https://t.me/{url}"
     if "None" in url or " " in url:
@@ -85,22 +82,19 @@ async def generate_start_message(client, message):
             )
         ])
 
-    # Support + Updates row
-    social = []
-    support_url = format_url(SUPPORT_CHAT)
-    if support_url:
-        social.append(InlineKeyboardButton("💜 Support Group", url=support_url))
+    # Support group (always) + Updates (if set)
+    social = [
+        InlineKeyboardButton("💜 Support Group", url=SUPPORT_CHAT)
+    ]
     update_url = format_url(UPDATE_CHAT)
     if update_url:
         social.append(InlineKeyboardButton("📢 Updates", url=update_url))
-    if social:
-        buttons.append(social)
+    buttons.append(social)
 
     buttons.append([InlineKeyboardButton("🧪 Training Manual", callback_data="open_help")])
 
-    owner_url = format_url(OWNER_URL)
-    if owner_url:
-        buttons.append([InlineKeyboardButton("Owner", url=owner_url)])
+    owner_url = format_url(OWNER_URL) or OWNER_URL
+    buttons.append([InlineKeyboardButton("Owner", url=owner_url)])
 
     return caption, buttons
 
@@ -126,11 +120,8 @@ async def generate_group_start_message(client):
                 url=f"https://t.me/{bot_username}?startgroup=true",
             )
         )
-    support_url = format_url(SUPPORT_CHAT)
-    if support_url:
-        row.append(InlineKeyboardButton("💜 Support", url=support_url))
-    if row:
-        buttons.append(row)
+    row.append(InlineKeyboardButton("💜 Support", url=SUPPORT_CHAT))
+    buttons.append(row)
 
     return caption, buttons
 
