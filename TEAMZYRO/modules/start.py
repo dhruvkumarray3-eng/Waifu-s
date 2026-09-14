@@ -1,6 +1,6 @@
 # ==========================================
 # Creator: MrZyro
-# start.py – private/group start (safe media + buttons)
+# start.py – always replies on /start
 # ==========================================
 
 import os
@@ -172,11 +172,20 @@ async def send_media_message(message, media, caption, buttons):
             )
         except Exception as e2:
             print(f"[start] text+buttons failed: {e2}")
-            await message.reply_text(caption, parse_mode=enums.ParseMode.HTML)
+            await message.reply_text(
+                "🦋 Welcome! Bot is online.\nUse /help for commands."
+            )
 
 
-@app.on_message(filters.command("start") & filters.private)
+@app.on_message(filters.command("start") & filters.private, group=0)
 async def start_private_command(client, message):
+    # Always reply something first
+    try:
+        wait = await message.reply_text("🦋 Loading...")
+    except Exception as e:
+        print(f"[start] cannot reply at all: {e}")
+        return
+
     try:
         existing_user = await user_collection.find_one({"id": message.from_user.id})
         if not existing_user:
@@ -187,40 +196,61 @@ async def start_private_command(client, message):
                 "last_name": message.from_user.last_name,
                 "start_time": time.time(),
             })
-
-        caption, buttons = await generate_start_message(client, message)
-
-        try:
-            media = random.choice(START_MEDIA) if START_MEDIA else ""
-        except Exception:
-            media = ""
-
-        if BOT_LOGGING:
-            try:
-                await app.send_message(
-                    chat_id=BOT_LOGGING,
-                    text=(
-                        f"{message.from_user.mention} just started the bot.\n\n"
-                        f"<b>User ID:</b> <code>{message.from_user.id}</code>\n"
-                        f"<b>Username:</b> @{message.from_user.username}"
-                    ),
-                )
-            except Exception as e:
-                print(f"Failed to send start log: {e}")
-
-        await send_media_message(message, media, caption, buttons)
-
     except Exception as e:
-        print(f"[start] full fail: {e}")
+        print(f"[start] db: {e}")
+
+    try:
+        caption, buttons = await generate_start_message(client, message)
+    except Exception as e:
+        print(f"[start] generate: {e}")
+        try:
+            await wait.edit_text("🦋 Welcome! Bot is online.\nUse /help")
+        except Exception:
+            await message.reply_text("🦋 Welcome! Bot is online.\nUse /help")
+        return
+
+    try:
+        media = random.choice(START_MEDIA) if START_MEDIA else ""
+    except Exception as e:
+        print(f"[start] media pick: {e}")
+        media = ""
+
+    # Delete loading, then send real start
+    try:
+        await wait.delete()
+    except Exception:
+        pass
+
+    try:
+        await send_media_message(message, media, caption, buttons)
+    except Exception as e:
+        print(f"[start] send_media: {e}")
         try:
             await message.reply_text(
-                "🦋 Welcome! Bot is online.\nUse /help for commands."
+                caption,
+                reply_markup=InlineKeyboardMarkup(buttons) if buttons else None,
+                parse_mode=enums.ParseMode.HTML,
             )
-        except Exception:
-            pass
+        except Exception as e2:
+            print(f"[start] text fail: {e2}")
+            await message.reply_text("🦋 Welcome! Use /help")
+
+    # Optional log (history.py also logs — fine if both run)
+    if BOT_LOGGING:
+        try:
+            await app.send_message(
+                chat_id=BOT_LOGGING,
+                text=(
+                    f"{message.from_user.mention} just started the bot.\n\n"
+                    f"<b>User ID:</b> <code>{message.from_user.id}</code>\n"
+                    f"<b>Username:</b> @{message.from_user.username}"
+                ),
+            )
+        except Exception as e:
+            print(f"Failed to send start log: {e}")
 
 
-@app.on_message(filters.command("start") & filters.group)
+@app.on_message(filters.command("start") & filters.group, group=0)
 async def start_group_command(client, message):
     try:
         caption, buttons = await generate_group_start_message(client)
@@ -231,7 +261,10 @@ async def start_group_command(client, message):
         await send_media_message(message, media, caption, buttons)
     except Exception as e:
         print(f"[start group] fail: {e}")
-        await message.reply_text("🦋 Bot is online. Use /help")
+        try:
+            await message.reply_text("🦋 Bot is online. Use /help")
+        except Exception:
+            pass
 
 
 def find_help_modules():
