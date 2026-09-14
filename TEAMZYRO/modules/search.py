@@ -1,9 +1,9 @@
 
 # ==========================================
 # search.py
-# /search → Search Waifus button only
-# flood → 10 min block all cmds
-# (Who Have It is on INLINE results → see inlinequery.py)
+# /search → Search Waifus (inline) button
+# flood → block all commands for 10 minutes
+# Who Have It on INLINE image = inlinequery.py
 # ==========================================
 
 import time
@@ -22,7 +22,7 @@ except ImportError:
             pass
 
 
-# ---------- FLOOD ----------
+# ===================== FLOOD =====================
 _flood = {}
 FLOOD_LIMIT = 3
 FLOOD_WINDOW = 8
@@ -31,7 +31,8 @@ FLOOD_BLOCK = 10 * 60
 
 def _data(uid: int) -> dict:
     return _flood.setdefault(
-        uid, {"count": 0, "start": 0.0, "blocked_until": 0.0, "last_warn": 0.0}
+        uid,
+        {"count": 0, "start": 0.0, "blocked_until": 0.0, "last_warn": 0.0},
     )
 
 
@@ -58,6 +59,8 @@ def hit_flood(uid: int) -> float:
 
 
 async def _warn(message: Message, left: float):
+    if not message.from_user:
+        return
     d = _data(message.from_user.id)
     now = time.time()
     if now - d.get("last_warn", 0) < 4:
@@ -90,7 +93,6 @@ async def search_cmd(client, message: Message):
         await _warn(message, left)
         raise StopPropagation
 
-    # Only inline button — no /search Hi card, no Who Have It here
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔎 Search Waifus", switch_inline_query_current_chat="")]
     ])
