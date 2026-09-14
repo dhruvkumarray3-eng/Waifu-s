@@ -1,12 +1,9 @@
 # ==========================================
-# search.py
-# /search UI + character cards + Who Have It
-# Flood block 10 min — handled ONLY here (all commands)
+# search.py – fixed StopPropagation import
 # ==========================================
 
 import time
 from pyrogram import filters
-from pyrogram.errors import StopPropagation
 from pyrogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
@@ -18,15 +15,28 @@ from pyrogram.types import (
 from pyrogram.enums import ParseMode
 from TEAMZYRO import app, collection, user_collection
 
-# ---------------- FLOOD (in-memory) ----------------
-_flood = {}  # user_id -> dict
-FLOOD_LIMIT = 3       # max hits
-FLOOD_WINDOW = 8      # seconds
-FLOOD_BLOCK = 10 * 60 # 10 minutes
+# ---- StopPropagation (works on all Pyrogram builds) ----
+try:
+    from pyrogram import StopPropagation
+except ImportError:
+    try:
+        from pyrogram.dispatcher import StopPropagation
+    except ImportError:
+        class StopPropagation(Exception):
+            """Stop remaining handlers for this update."""
+            pass
+
+# ---------------- FLOOD ----------------
+_flood = {}
+FLOOD_LIMIT = 3
+FLOOD_WINDOW = 8
+FLOOD_BLOCK = 10 * 60
 
 
 def _data(uid: int) -> dict:
-    return _flood.setdefault(uid, {"count": 0, "start": 0.0, "blocked_until": 0.0, "last_warn": 0.0})
+    return _flood.setdefault(
+        uid, {"count": 0, "start": 0.0, "blocked_until": 0.0, "last_warn": 0.0}
+    )
 
 
 def is_blocked(uid: int) -> float:
@@ -35,16 +45,13 @@ def is_blocked(uid: int) -> float:
 
 
 def hit_flood(uid: int) -> float:
-    """Count one command. Return block seconds if just blocked, else 0."""
     now = time.time()
     d = _data(uid)
     if d.get("blocked_until", 0) > now:
         return d["blocked_until"] - now
-
     if now - d.get("start", 0) > FLOOD_WINDOW:
         d["count"] = 0
         d["start"] = now
-
     d["count"] = d.get("count", 0) + 1
     if d["count"] > FLOOD_LIMIT:
         d["blocked_until"] = now + FLOOD_BLOCK
@@ -68,19 +75,16 @@ async def _warn_blocked(message: Message, left: float):
     )
 
 
-# Runs FIRST for every command — blocks all cmds while flooded
 @app.on_message(filters.regex(r"^/") & filters.incoming, group=-10)
 async def global_flood_gate(client, message: Message):
     if not message.from_user:
         return
-    uid = message.from_user.id
-    left = is_blocked(uid)
+    left = is_blocked(message.from_user.id)
     if left > 0:
         await _warn_blocked(message, left)
-        raise StopPropagation  # stop every other command handler
+        raise StopPropagation
 
 
-# ---------------- SEARCH HELPERS ----------------
 def char_caption(c: dict) -> str:
     return (
         f"🌟 **Character Info**\n"
@@ -144,30 +148,36 @@ async def send_card(target, c, query, index, total, anime_only, edit=False):
                     reply_markup=kb,
                 )
             else:
-                await target.edit_caption(caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+                await target.edit_caption(
+                    caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+                )
         except Exception:
             try:
-                await target.edit_caption(caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+                await target.edit_caption(
+                    caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+                )
             except Exception:
                 pass
         return
 
     if c.get("vid_url") and media:
-        await target.reply_video(media, caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+        await target.reply_video(
+            media, caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+        )
     elif media:
-        await target.reply_photo(media, caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+        await target.reply_photo(
+            media, caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+        )
     else:
         await target.reply_text(caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
 
 
-# ---------------- /search ----------------
 @app.on_message(filters.command(["search", "find", "s"]))
 async def search_cmd(client, message: Message):
     if not message.from_user:
         return
     uid = message.from_user.id
 
-    # count this hit toward flood (gate already blocked if active)
     left = hit_flood(uid)
     if left > 0:
         await _warn_blocked(message, left)
@@ -175,7 +185,6 @@ async def search_cmd(client, message: Message):
 
     args = message.command
 
-    # Bare /search → screenshot style
     if len(args) < 2:
         kb = InlineKeyboardMarkup([
             [InlineKeyboardButton("🔎 Search Waifus", switch_inline_query_current_chat="")]
@@ -215,14 +224,20 @@ async def search_nav(client, callback_query: CallbackQuery):
         if not chars or index < 0 or index >= len(chars):
             return await callback_query.answer("No more.", show_alert=True)
         await send_card(
-            callback_query.message, chars[index], query, index, len(chars), anime_only, edit=True
+            callback_query.message,
+            chars[index],
+            query,
+            index,
+            len(chars),
+            anime_only,
+            edit=True,
         )
         await callback_query.answer()
     except Exception as e:
         await callback_query.answer(str(e)[:200], show_alert=True)
 
 
-# Who Have It — delete this block if check.py already has whohaveit_
+# Remove this if check.py already has whohaveit_
 @app.on_callback_query(filters.regex(r"^whohaveit_"))
 async def who_have_it(client, callback_query: CallbackQuery):
     character_id = callback_query.data.split("_", 1)[1]
