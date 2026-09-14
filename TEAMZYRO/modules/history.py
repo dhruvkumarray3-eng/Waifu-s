@@ -1,4 +1,4 @@
-tes# ==========================================
+# ==========================================
 # history.py
 # /data, /cgrant, join/leave logs, /start log only
 # ==========================================
@@ -50,7 +50,6 @@ def get_uptime() -> str:
     return f"{h}h {m}m {sec}s"
 
 
-# ===================== /data =====================
 @app.on_message(filters.command(["data", "botdata", "botstats"]))
 async def bot_data_cmd(client, message: Message):
     if not message.from_user or not await is_sudo_or_owner(message.from_user.id):
@@ -104,7 +103,6 @@ async def bot_data_cmd(client, message: Message):
         )
 
 
-# ===================== /cgrant =====================
 @app.on_message(filters.command(["cgrant", "grantchar"]))
 async def cgrant_cmd(client, message: Message):
     if not message.from_user or message.from_user.id != OWNER_ID:
@@ -190,7 +188,6 @@ async def cgrant_cmd(client, message: Message):
     )
 
 
-# ===================== JOIN / LEAVE LOGS =====================
 @app.on_message(filters.new_chat_members)
 async def history_new_members(client, message: Message):
     me = await client.get_me()
@@ -254,10 +251,9 @@ async def history_left_member(client, message: Message):
     await send_log(text)
 
 
-# ===================== /start LOG ONLY (group=50) =====================
 @app.on_message(filters.command("start") & filters.private, group=50)
 async def history_start_log(client, message: Message):
-    """Only log — does NOT reply to user. start.py handles the welcome."""
+    """Only log — does NOT reply. start.py shows the welcome."""
     u = message.from_user
     if not u:
         return
