@@ -1,6 +1,6 @@
 # ==========================================
 # Creator: MrZyro
-# start.py – always replies on /start
+# start.py – support group included
 # ==========================================
 
 import os
@@ -11,7 +11,11 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQ
 from TEAMZYRO import *
 from TEAMZYRO.unit.zyro_help import HELP_DATA
 
-SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "https://t.me/+cYkP7lDW0uY4MzVl")
+# Support group (invite link)
+SUPPORT_CHAT = os.getenv(
+    "SUPPORT_CHAT",
+    "https://t.me/+cYkP7lDW0uY4MzVl",  # your support group
+)
 UPDATE_CHAT = os.getenv("UPDATE_CHAT", "")
 OWNER_URL = "https://t.me/powerstar_frogie"
 
@@ -35,8 +39,10 @@ def format_url(url: str):
         url = f"https://t.me/{url[1:]}"
     elif url.startswith("t.me/"):
         url = "https://" + url
+    elif url.startswith("+"):
+        url = f"https://t.me/{url}"
     elif not url.startswith("http://") and not url.startswith("https://"):
-        if " " in url or "/" in url:
+        if " " in url or ("/" in url and not url.startswith("t.me")):
             return None
         url = f"https://t.me/{url}"
     if "None" in url or " " in url:
@@ -79,13 +85,14 @@ async def generate_start_message(client, message):
             )
         ])
 
+    # Support + Updates row
     social = []
     support_url = format_url(SUPPORT_CHAT)
     if support_url:
-        social.append(InlineKeyboardButton("💜 Support Mansion", url=support_url))
+        social.append(InlineKeyboardButton("💜 Support Group", url=support_url))
     update_url = format_url(UPDATE_CHAT)
     if update_url:
-        social.append(InlineKeyboardButton("📢 Laboratory", url=update_url))
+        social.append(InlineKeyboardButton("📢 Updates", url=update_url))
     if social:
         buttons.append(social)
 
@@ -111,21 +118,19 @@ async def generate_group_start_message(client):
     )
 
     buttons = []
+    row = []
     if bot_username:
-        row = [
+        row.append(
             InlineKeyboardButton(
                 "🦋 Summon Me",
                 url=f"https://t.me/{bot_username}?startgroup=true",
             )
-        ]
-        support_url = format_url(SUPPORT_CHAT)
-        if support_url:
-            row.append(InlineKeyboardButton("💜 Support", url=support_url))
+        )
+    support_url = format_url(SUPPORT_CHAT)
+    if support_url:
+        row.append(InlineKeyboardButton("💜 Support", url=support_url))
+    if row:
         buttons.append(row)
-    else:
-        support_url = format_url(SUPPORT_CHAT)
-        if support_url:
-            buttons.append([InlineKeyboardButton("💜 Support", url=support_url)])
 
     return caption, buttons
 
@@ -179,7 +184,6 @@ async def send_media_message(message, media, caption, buttons):
 
 @app.on_message(filters.command("start") & filters.private, group=0)
 async def start_private_command(client, message):
-    # Always reply something first
     try:
         wait = await message.reply_text("🦋 Loading...")
     except Exception as e:
@@ -215,7 +219,6 @@ async def start_private_command(client, message):
         print(f"[start] media pick: {e}")
         media = ""
 
-    # Delete loading, then send real start
     try:
         await wait.delete()
     except Exception:
@@ -235,7 +238,6 @@ async def start_private_command(client, message):
             print(f"[start] text fail: {e2}")
             await message.reply_text("🦋 Welcome! Use /help")
 
-    # Optional log (history.py also logs — fine if both run)
     if BOT_LOGGING:
         try:
             await app.send_message(
