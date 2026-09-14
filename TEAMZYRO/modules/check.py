@@ -1,73 +1,115 @@
 # ==========================================
 # Creator: MrZyro
-# Telegram: @MrZyro_dev
-# GitHub: https://github.com/MrZyro
+# check.py – /check + Who Have It (normal + inline)
 # ==========================================
 
-# TEAMZYRO/commands/check.py
 from TEAMZYRO import app, collection as character_collection, user_collection
-from pyrogram import Client, filters, enums
+from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from pyrogram.enums import ParseMode
 
-import asyncio 
 
 @app.on_message(filters.command("check"))
 async def check_character(client, message):
     args = message.command
     if len(args) < 2:
-        await message.reply_text("Please provide a Character ID: `/check <character_id>`")
+        await message.reply_text(
+            "Please provide a Character ID:\n`/check <character_id>`",
+            parse_mode=ParseMode.MARKDOWN,
+        )
         return
 
-    character_id = args[1]
-    character = await character_collection.find_one({'id': character_id})
+    character_id = str(args[1])
+    character = await character_collection.find_one({"id": character_id})
 
     if not character:
-        await message.reply_text("Character not found.")
-        return
+        # try zero-padded id e.g. 1 -> 01
+        character = await character_collection.find_one({"id": character_id.zfill(2)})
+        if character:
+            character_id = str(character.get("id"))
+        else:
+            await message.reply_text("Character not found.")
+            return
 
-    # Power nikaalo using rarity
-
-    # Create the 'Who Have It' button
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("Who Have It", callback_data=f"whohaveit_{character_id}")]
     ])
 
-    # Send character details
     text = (
         f"🌟 **Character Info**\n"
         f"🆔 ID: `{character_id}`\n"
-        f"📛 Name: {character['name']}\n"
-        f"📺 Anime: {character['anime']}\n"
-        f"💎 Rarity: {character['rarity']}\n"
+        f"📛 Name: {character.get('name', '?')}\n"
+        f"📺 Anime: {character.get('anime', '?')}\n"
+        f"💎 Rarity: {character.get('rarity', '?')}\n"
     )
 
-    if 'vid_url' in character:
-        await message.reply_video(character['vid_url'], caption=text, reply_markup=keyboard)
+    if character.get("vid_url"):
+        await message.reply_video(
+            character["vid_url"],
+            caption=text,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    elif character.get("img_url"):
+        await message.reply_photo(
+            character["img_url"],
+            caption=text,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.MARKDOWN,
+        )
     else:
-        await message.reply_photo(character['img_url'], caption=text, reply_markup=keyboard)
+        await message.reply_text(
+            text,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.MARKDOWN,
+        )
 
 
-@app.on_callback_query(filters.regex("^whohaveit_"))
-async def who_have_it(client, callback_query):
-    character_id = callback_query.data.split("_")[1]
+@app.on_callback_query(filters.regex(r"^whohaveit_"))
+async def who_have_it(client, callback_query: CallbackQuery):
+    character_id = callback_query.data.split("_", 1)[1]
 
-    # Find users who own the character
-    users = await user_collection.find({'characters.id': character_id}).to_list(length=10)
+    users = await user_collection.find({"characters.id": character_id}).to_list(length=10)
 
     if not users:
         await callback_query.answer("No one owns this character yet!", show_alert=True)
         return
 
-    # Generate top 10 owners list with count
-    owner_text = "**🏆 Top 10 Users Who Own This Character:**\n\n"
+    owner_text = "\n\n**🏆 Top 10 Users Who Own This Character:**\n\n"
     for i, user in enumerate(users, 1):
-        user_name = user.get('first_name', 'Unknown')  # Use 'Unknown' if missing
-        count = sum(1 for char in user.get("characters", []) if char["id"] == character_id)
+        user_name = user.get("first_name", "Unknown")
+        count = sum(
+            1
+            for char in user.get("characters", [])
+            if str(char.get("id")) == str(character_id)
+        )
         owner_text += f"{i}. [{user_name}](tg://user?id={user['id']}) — x{count}\n"
 
-    # Edit message to include the owner list and remove the button
-    await callback_query.message.edit_caption(
-        caption=f"{callback_query.message.caption}\n\n{owner_text}",
-        reply_markup=None
-    )
+    # Base caption (works when message exists)
+    base = ""
+    if callback_query.message:
+        base = callback_query.message.caption or callback_query.message.text or ""
 
+    if "🏆 Top 10 Users" in base:
+        base = base.split("🏆 Top 10 Users")[0].rstrip()
+
+    new_caption = (base + owner_text) if base else owner_text.strip()
+
+    # IMPORTANT: edit_message_caption works for normal + inline (message may be None)
+    try:
+        await callback_query.edit_message_caption(
+            caption=new_caption,
+            reply_markup=None,
+        )
+    except Exception:
+        try:
+            await callback_query.edit_message_text(
+                text=new_caption,
+                reply_markup=None,
+                disable_web_page_preview=True,
+            )
+        except Exception as e:
+            await callback_query.answer(f"Could not update: {e}", show_alert=True)
+            return
+
+    await callback_query.answer()
