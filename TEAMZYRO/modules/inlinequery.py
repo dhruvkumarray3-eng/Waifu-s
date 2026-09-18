@@ -80,10 +80,22 @@ async def inlinequery(update: Update, context: CallbackContext) -> None:
     characters = all_characters[offset : offset + 50]
     next_offset = str(offset + len(characters)) if len(characters) == 50 else None
 
+    char_ids = [str(c.get("id")) for c in characters if c.get("id")]
+    global_counts = {}
+    if char_ids:
+        pipeline = [
+            {"$unwind": "$characters"},
+            {"$match": {"characters.id": {"$in": char_ids}}},
+            {"$group": {"_id": "$characters.id", "count": {"$sum": 1}}}
+        ]
+        counts_cursor = await user_collection.aggregate(pipeline).to_list(length=None)
+        global_counts = {item["_id"]: item["count"] for item in counts_cursor}
+
     results = []
     for character in characters:
         char_id = str(character.get("id", ""))
         event = character.get("event") or character.get("type")
+        global_count = global_counts.get(char_id, 0)
 
         caption = (
             f"🧩 <b>Character Details:</b>\n\n"
@@ -91,6 +103,7 @@ async def inlinequery(update: Update, context: CallbackContext) -> None:
             f"🪪 <b>Name:</b> {escape(str(character.get('name', '?')))}\n"
             f"📼 <b>Anime:</b> {escape(str(character.get('anime', '?')))}\n"
             f"🪙 <b>Rarity:</b> {escape(str(character.get('rarity', '?')))}\n"
+            f"🌐 <b>Globally Grabbed:</b> {global_count}\n"
         )
         if event:
             caption += f"🎪 <b>Event:</b> {escape(get_event_display(event))}\n"

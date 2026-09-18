@@ -5,6 +5,8 @@
 # ==========================================
 
 import random
+import asyncio
+import time
 from datetime import datetime
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, InputMediaVideo, Message, CallbackQuery
@@ -14,6 +16,7 @@ from TEAMZYRO import app, user_collection, collection
 user_dart_progress = {}
 user_smash_state = {}
 active_smash_chats = {}
+user_smash_cooldowns = {}
 
 SMASH_RARITIES = ['🔵 Common', '🟣 Uncommon', '🔴 Medium', '🟠 Rare', '🟡 Legendary']
 
@@ -42,7 +45,14 @@ async def dart_handler(client: Client, message: Message):
             parse_mode=enums.ParseMode.HTML
         )
 
-    # Throw dart & calculate reward between 3 and 12 coins
+    # Send animated Telegram dart dice first
+    try:
+        await client.send_dice(chat_id=message.chat.id, emoji="🎯")
+        await asyncio.sleep(2.5)  # Wait for animated dart throw to land
+    except Exception as e:
+        print(f"Error sending animated dart dice: {e}")
+
+    # Calculate reward between 3 and 12 coins
     coins_won = random.randint(3, 12)
     user_dart_progress[user_id]["count"] += 1
     new_count = user_dart_progress[user_id]["count"]
@@ -64,7 +74,7 @@ async def dart_handler(client: Client, message: Message):
 
     reply_text = (
         f"🎯 <b>DART THROW RESULT</b>\n\n"
-        f"🎯 <i>You threw a precision dart straight into the bullseye!</i>\n"
+        f"🎯 <i>You threw a precision dart straight into the target!</i>\n"
         f"💰 <b>Earned:</b> +{coins_won} Wisteria Coins 💴\n"
         f"💳 <b>Total Balance:</b> {new_balance} Coins\n"
         f"📊 <b>Attempts Today:</b> {new_count}/5"
@@ -93,6 +103,20 @@ async def fetch_smash_character():
 async def smash_handler(client: Client, message: Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
+    current_time = time.time()
+
+    # Check 5-minute cooldown
+    if user_id in user_smash_cooldowns:
+        cooldown_end = user_smash_cooldowns[user_id]
+        if current_time < cooldown_end:
+            remaining = int(cooldown_end - current_time)
+            mins, secs = divmod(remaining, 60)
+            time_str = f"{mins}m {secs}s" if mins > 0 else f"{secs}s"
+            return await message.reply_text(
+                f"⏳ <b>Ara ara~ You are on a 5-minute cooldown before using /smash again!</b>\n"
+                f"Please wait <b>{time_str}</b>.",
+                parse_mode=enums.ParseMode.HTML
+            )
 
     if chat_id in active_smash_chats:
         active_user_id = active_smash_chats[chat_id]
@@ -173,6 +197,9 @@ async def smash_action_callback(client: Client, callback_query: CallbackQuery):
     if not state:
         return await callback_query.answer("Smash session expired! Please run /smash again.", show_alert=True)
 
+    # Set 5-minute (300s) cooldown after performing an action
+    user_smash_cooldowns[target_user_id] = time.time() + 300
+
     char = state["character"]
     user_id = callback_query.from_user.id
 
@@ -203,21 +230,22 @@ async def smash_action_callback(client: Client, callback_query: CallbackQuery):
 
     await callback_query.answer(result_alert, show_alert=True)
 
-    # Load next random character for continuous smashing
-    next_char = await fetch_smash_character()
-    if next_char:
-        state["character"] = next_char
-        await send_smash_card(client, callback_query, target_user_id, is_initial=False)
-    else:
-        user_smash_state.pop(target_user_id, None)
-        active_smash_chats.pop(callback_query.message.chat.id, None)
+    # End current smash session & clean up so cooldown applies next time
+    user_smash_state.pop(target_user_id, None)
+    active_smash_chats.pop(callback_query.message.chat.id, None)
+    try:
         await callback_query.message.delete()
+    except Exception:
+        pass
 
 
 @app.on_callback_query(filters.regex(r"^cancel_smash_"))
 async def cancel_smash_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     chat_id = callback_query.message.chat.id
+
+    # Set 5-minute cooldown on cancel as well
+    user_smash_cooldowns[user_id] = time.time() + 300
 
     user_smash_state.pop(user_id, None)
     active_smash_chats.pop(chat_id, None)
@@ -226,4 +254,4 @@ async def cancel_smash_callback(client: Client, callback_query: CallbackQuery):
         await callback_query.message.delete()
     except Exception:
         pass
-    await callback_query.answer("Smash session closed!", show_alert=True)
+    await callback_query.answer("Smash session closed! (5-minute cooldown active)", show_alert=True)

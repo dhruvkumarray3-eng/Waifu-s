@@ -36,6 +36,14 @@ async def check_character(client, message):
         [InlineKeyboardButton("Who Have It", callback_data=f"whohaveit_{character_id}")]
     ])
 
+    pipeline = [
+        {"$unwind": "$characters"},
+        {"$match": {"characters.id": str(character_id)}},
+        {"$count": "count"}
+    ]
+    res = await user_collection.aggregate(pipeline).to_list(length=1)
+    global_count = res[0]["count"] if res else 0
+
     event = character.get("event") or character.get("type")
     text = (
         f"🧩 **Character Details:**\n\n"
@@ -43,6 +51,7 @@ async def check_character(client, message):
         f"🪪 **Name:** {character.get('name', '?')}\n"
         f"📼 **Anime:** {character.get('anime', '?')}\n"
         f"🪙 **Rarity:** {character.get('rarity', '?')}\n"
+        f"🌐 **Globally Grabbed:** {global_count}\n"
     )
     if event:
         text += f"🎪 **Event:** {get_event_display(event)}\n"
