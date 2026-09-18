@@ -20,19 +20,35 @@ async def format_time_delta(delta):
     minutes, seconds = divmod(remainder, 60)
     return f"{int(hours)}h {int(minutes)}m {int(seconds)}s" if hours or minutes or seconds else "0s"
 
-# Fetch unique characters not yet claimed by the user
+# Fetch unique characters not yet claimed by the user (or sample from target rarities if all claimed)
 async def get_unique_characters(user_id, target_rarities=['🔵 Common', '🟣 Uncommon', '🔴 Medium', '🟠 Rare', '🟡 Legendary']):
     try:
-        # Get the already claimed character ids
         user_data = await user_collection.find_one({'id': user_id}, {'characters.id': 1})
         claimed_ids = [char['id'] for char in user_data.get('characters', [])] if user_data else []
 
+        # Try unclaimed characters of target rarities first
         pipeline = [
             {'$match': {'rarity': {'$in': target_rarities}, 'id': {'$nin': claimed_ids}}},
-            {'$sample': {'size': 1}}  # Randomly sample one character
+            {'$sample': {'size': 1}}
         ]
         cursor = collection.aggregate(pipeline)
         characters = await cursor.to_list(length=None)
+        
+        if not characters:
+            # Fallback to any character of target rarities
+            pipeline = [
+                {'$match': {'rarity': {'$in': target_rarities}}},
+                {'$sample': {'size': 1}}
+            ]
+            cursor = collection.aggregate(pipeline)
+            characters = await cursor.to_list(length=None)
+            
+        if not characters:
+            # General fallback to any character in DB
+            pipeline = [{'$sample': {'size': 1}}]
+            cursor = collection.aggregate(pipeline)
+            characters = await cursor.to_list(length=None)
+
         return characters if characters else []
     except Exception as e:
         print(f"Error retrieving unique characters: {e}")
@@ -43,7 +59,6 @@ async def get_unique_characters(user_id, target_rarities=['🔵 Common', '🟣 U
 async def mclaim(_, message: t.Message):
     user_id = message.from_user.id
     mention = message.from_user.mention
-    today = datetime.utcnow().date()
 
     # Prevent multiple claims at the same time
     if user_id in claim_lock:
@@ -52,14 +67,6 @@ async def mclaim(_, message: t.Message):
 
     claim_lock[user_id] = True
     try:
-        # Ensure the user is in the correct chat
-        if str(message.chat.id) != str(chat):
-            join_button = InlineKeyboardMarkup([[InlineKeyboardButton("Join Here", url=FORCE_JOIN_LINK)]])
-            return await message.reply_text(
-                "🔔 ᴊᴏɪɴ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴄʟᴀɪᴍ ʏᴏᴜʀ ᴅᴀɪʟʏ ᴄʜᴀʀᴀᴄᴛᴇʀ 🔔",
-                reply_markup=join_button
-            )
-
         # Fetch user data or create a new user if not found
         user_data = await user_collection.find_one({'id': user_id})
         if not user_data:
@@ -71,12 +78,15 @@ async def mclaim(_, message: t.Message):
             }
             await user_collection.insert_one(user_data)
 
-        # Check if the user has already claimed today
+        # Check if the user has already claimed within 24 hours
         last_claimed_date = user_data.get('last_daily_reward')
-        if last_claimed_date and last_claimed_date.date() == datetime.utcnow().date():
-            remaining_time = timedelta(days=1) - (datetime.utcnow() - last_claimed_date)
-            formatted_time = await format_time_delta(remaining_time)
-            return await message.reply_text(f"⏳ *You've already claimed today! Next reward in:* `{formatted_time}`")
+        if last_claimed_date:
+            now = datetime.utcnow()
+            elapsed = now - last_claimed_date
+            if elapsed < timedelta(hours=24):
+                remaining_time = timedelta(hours=24) - elapsed
+                formatted_time = await format_time_delta(remaining_time)
+                return await message.reply_text(f"⏳ **You've already claimed today! Next reward in:** `{formatted_time}`")
 
         # Fetch a unique character for the user
         unique_characters = await get_unique_characters(user_id)

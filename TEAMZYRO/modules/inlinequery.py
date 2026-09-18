@@ -83,29 +83,13 @@ async def inlinequery(update: Update, context: CallbackContext) -> None:
     for character in characters:
         char_id = str(character.get("id", ""))
 
-        if user is not None:
-            user_character_count = sum(
-                1
-                for char in user.get("characters", [])
-                if char.get("id") == character.get("id")
-            )
-            caption = (
-                f"<b>👤 Check out <a href='tg://user?id={user['id']}'>"
-                f"{escape(str(user.get('first_name', 'User')))}</a>'s character:</b>\n\n"
-                f"🌸 <b>{escape(str(character.get('name', '?')))} "
-                f"(x{user_character_count})</b>\n"
-                f"🏖️ From: <b>{escape(str(character.get('anime', '?')))}</b>\n"
-                f"🔮 Rarity: <b>{escape(str(character.get('rarity', '?')))}</b>\n\n"
-                f"🆔️ <b>{escape(char_id)}</b>\n"
-            )
-        else:
-            caption = (
-                f"<b>Discover this amazing character:</b>\n\n"
-                f"🌸 <b>{escape(str(character.get('name', '?')))}</b>\n"
-                f"🏖️ From: <b>{escape(str(character.get('anime', '?')))}</b>\n"
-                f"🔮 Rarity: <b>{escape(str(character.get('rarity', '?')))}</b>\n"
-                f"🆔️ <b>{escape(char_id)}</b>\n"
-            )
+        caption = (
+            f"🧩 <b>Character Details:</b>\n\n"
+            f"🆔 <b>ID:</b> <code>{escape(char_id)}</code>\n"
+            f"🪪 <b>Name:</b> {escape(str(character.get('name', '?')))}\n"
+            f"📼 <b>Anime:</b> {escape(str(character.get('anime', '?')))}\n"
+            f"🪙 <b>Rarity:</b> {escape(str(character.get('rarity', '?')))}\n"
+        )
 
         kb = who_have_keyboard(char_id)
 

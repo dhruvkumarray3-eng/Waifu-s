@@ -21,11 +21,6 @@ RARITY_PRICE = {
     "🔴 Medium": 5000,
     "🟠 Rare": 10000,
     "🟡 Legendary": 15000,
-    "💮 Mystical": 25000,
-    "⚜️ Divine": 40000,
-    "⚡ CrossVerse": 50000,
-    "✨ Cataphract": 75000,
-    "🪞 Supreme": 100000,
 }
 
 
