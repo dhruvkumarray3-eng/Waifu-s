@@ -14,9 +14,11 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import asyncio
 
 # Define the wrong format message and rarity map
-WRONG_FORMAT_TEXT = """Wrong ❌ format...  eg. /upload reply to photo muzan-kibutsuji Demon-slayer 3
+WRONG_FORMAT_TEXT = """Wrong ❌ format...  
+eg. /upload reply muzan-kibutsuji Demon-slayer 3
+eg. /upload reply muzan-kibutsuji Demon-slayer 3 erotic
 
-format:- /upload reply character-name anime-name rarity-number
+format:- /upload reply character-name anime-name rarity-number [event-type]
 
 use rarity number accordingly rarity Map
 
@@ -82,17 +84,50 @@ async def find_available_id():
 
 
 def upload_to_catbox(file_path=None, file_url=None, expires=None, secret=None):
-    url = "https://catbox.moe/user/api.php"
-    with open(file_path, "rb") as file:
-        response = requests.post(
-            url,
-            data={"reqtype": "fileupload"},
-            files={"fileToUpload": file}
-        )
-        if response.status_code == 200 and response.text.startswith("https"):
-            return response.text.strip()
-        else:
-            raise Exception(f"Error uploading to Catbox: {response.text}")
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    
+    # Provider 1: Catbox
+    try:
+        url = "https://catbox.moe/user/api.php"
+        with open(file_path, "rb") as file:
+            response = requests.post(
+                url,
+                data={"reqtype": "fileupload"},
+                files={"fileToUpload": file},
+                headers=headers,
+                timeout=30
+            )
+            if response.status_code == 200 and response.text.startswith("https"):
+                return response.text.strip()
+    except Exception:
+        pass
+
+    # Provider 2: Litterbox
+    try:
+        url_litter = "https://litterbox.catbox.moe/resources/internals/api.php"
+        with open(file_path, "rb") as file:
+            response = requests.post(
+                url_litter,
+                data={"reqtype": "fileupload", "time": "72h"},
+                files={"fileToUpload": file},
+                headers=headers,
+                timeout=30
+            )
+            if response.status_code == 200 and response.text.startswith("https"):
+                return response.text.strip()
+    except Exception:
+        pass
+
+    # Provider 3: Envs.sh
+    try:
+        with open(file_path, "rb") as file:
+            response = requests.post("https://envs.sh", files={"file": file}, headers=headers, timeout=30)
+            if response.status_code == 200 and response.text.startswith("https"):
+                return response.text.strip()
+    except Exception:
+        pass
+
+    raise Exception("Error uploading image/video. All upload endpoints failed.")
 
 
 def upload_to_imgbb(file_path: str) -> str:
@@ -192,7 +227,7 @@ async def ul_main(client, message):
         reply = message.reply_to_message
         if reply and (reply.photo or reply.document or reply.video):
             args = message.text.split()
-            if len(args) != 4:
+            if len(args) < 4 or len(args) > 5:
                 await client.send_message(chat_id=message.chat.id, text=WRONG_FORMAT_TEXT)
                 return
 
@@ -200,6 +235,7 @@ async def ul_main(client, message):
             character_name = args[1].replace('-', ' ').title()
             anime = args[2].replace('-', ' ').title()
             rarity = int(args[3])
+            event_type = args[4].replace('-', ' ').upper() if len(args) == 5 else None
 
             # Validate rarity value
             if rarity not in rarity_map:
@@ -216,6 +252,9 @@ async def ul_main(client, message):
                 'rarity': rarity_text,
                 'id': available_id
             }
+            if event_type:
+                character['event'] = event_type
+                character['type'] = event_type
 
             processing_message = await message.reply("<ᴘʀᴏᴄᴇꜱꜱɪɴɢ>....")
             path = await reply.download()

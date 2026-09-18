@@ -59,13 +59,14 @@ async def request_upload(client, message):
         return await message.reply_text("Please reply to a photo or document.")
 
     args = message.text.split()
-    if len(args) != 3:
+    if len(args) < 3 or len(args) > 4:
         return await message.reply_text(WRONG_FORMAT_TEXT)
 
     processing_message = await message.reply("⏳ Processing...")
 
     character_name = args[1].replace('-', ' ').title()
     anime = args[2].replace('-', ' ').title()
+    event_type = args[3].replace('-', ' ').upper() if len(args) == 4 else None
     path = await reply.download()
 
     try:
@@ -96,6 +97,9 @@ async def request_upload(client, message):
                 'name': message.from_user.first_name
             }
         }
+        if event_type:
+            upload_data['event'] = event_type
+            upload_data['type'] = event_type
 
         result = await upload_collection.insert_one(upload_data)
 
