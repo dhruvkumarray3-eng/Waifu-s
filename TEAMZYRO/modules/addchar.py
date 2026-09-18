@@ -187,8 +187,7 @@ async def handle_callback(client, callback_query):
                 f"**Character Name:** {request['name']}\n"
                 f"**Anime Name:** {request['anime']}\n"
                 f"**Rarity:** {new_rarity_text}\n"
-                f"**ID:** `{available_id}`\n"
-                f"**Uploaded by:** [{callback_query.from_user.first_name}](tg://user?id={callback_query.from_user.id})"
+                f"**ID:** `{available_id}`"
             ),
             reply_markup=None
         )

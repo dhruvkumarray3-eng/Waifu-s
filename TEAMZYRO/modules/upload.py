@@ -299,30 +299,29 @@ async def ul_main(client, message):
                 # 🔴 FIX: Safely convert DATABASE_ID to an integer if it's a numeric ID string
                 actual_chat_id = int(DATABASE_ID) if str(DATABASE_ID).lstrip('-').isdigit() else DATABASE_ID
 
+                # Prepare caption string
+                caption_lines = [
+                    f"**Character Name:** {character_name}",
+                    f"**Anime Name:** {anime}",
+                    f"**Rarity:** {rarity_text}",
+                    f"**ID:** {available_id}"
+                ]
+                if event_type:
+                    caption_lines.append(f"**Event:** {event_type}")
+                caption_str = "\n".join(caption_lines)
+
                 # Send character details to the channel using the safe chat ID
                 if reply.photo or reply.document:
                     await client.send_photo(
                         chat_id=actual_chat_id,
                         photo=file_url,
-                        caption=(
-                            f"**Character Name:** {character_name}\n"
-                            f"**Anime Name:** {anime}\n"
-                            f"**Rarity:** {rarity_text}\n"
-                            f"**ID:** {available_id}\n"
-                            f"**Added by:** [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
-                        ),
+                        caption=caption_str,
                     )
                 elif reply.video:
                     await client.send_video(
                         chat_id=actual_chat_id,
                         video=file_url,
-                        caption=(
-                            f"**Character Name:** {character_name}\n"
-                            f"**Anime Name:** {anime}\n"
-                            f"**Rarity:** {rarity_text}\n"
-                            f"**ID:** {available_id}\n"
-                            f"**Added by:** [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n\n"
-                        ),
+                        caption=caption_str,
                     )
 
                 # Insert character into the database
@@ -331,11 +330,13 @@ async def ul_main(client, message):
                 # Delete the "processing..." message
                 await processing_message.delete()
                 
-                await message.reply_text(
-                    f"➲ **ᴀᴅᴅᴇᴅ ʙʏ»** [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
+                reply_txt = (
                     f"➥ **Character ID:** `{available_id}`\n"
                     f"➥ **Rarity:** {rarity_text}"
                 )
+                if event_type:
+                    reply_txt += f"\n➥ **Event:** {event_type}"
+                await message.reply_text(reply_txt)
             except Exception as e:
                 # Update the processing message with the error instead of leaving it there
                 await processing_message.edit_text(f"Character Upload Unsuccessful. Error: {str(e)}")

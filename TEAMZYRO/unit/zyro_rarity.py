@@ -15,18 +15,6 @@ rarity_map = {
     8: "⚡ CrossVerse",
     9: "✨ Cataphract",
     10: "🪞 Supreme",
-    11: "🎐 Celestial",
-    12: "❄️ Winter",
-    13: "💝 Valentine",
-    14: "🎃 Halloween",
-    15: "🎄 Christmas Special",
-    16: "🎭 Cosplay Master 🎭",
-    17: "🧧 Events",
-    18: "🍑 Echhi",
-    19: "🎗️ AMV Edition",
-    20: "🌟 Luminous",
-    21: "🌧 Rainy",
-    22: "🍭 Winter event",
 }
 
 # RARITY_NAMES updated according to rarity_map
@@ -41,17 +29,6 @@ RARITY_NAMES = [
     "⚡ CrossVerse",
     "✨ Cataphract",
     "🪞 Supreme",
-    "🎐 Celestial",
-    "❄️ Winter",
-    "💝 Valentine",
-    "🎃 Halloween",
-    "🎄 Christmas Special",
-    "🎭 Cosplay Master 🎭",
-    "🧧 Events",
-    "🍑 Echhi",
-    "🎗️ AMV Edition",
-    "🌟 Luminous",
-    "🌧 Rainy",
 ]
 
 # rarity_map2 updated according to rarity_map
@@ -66,16 +43,5 @@ rarity_map2 = {
     "⚡ CrossVerse": "⚡",
     "✨ Cataphract": "✨",
     "🪞 Supreme": "🪞",
-    "🎐 Celestial": "🎐",
-    "❄️ Winter": "❄️",
-    "💝 Valentine": "💝",
-    "🎃 Halloween": "🎃",
-    "🎄 Christmas Special": "🎄",
-    "🎭 Cosplay Master 🎭": "🎭",
-    "🧧 Events": "🧧",
-    "🍑 Echhi": "🍑",
-    "🎗️ AMV Edition": "🎗️",
-    "🌟 Luminous": "🌟",
-    "🌧 Rainy": "🌧",
 }
 
