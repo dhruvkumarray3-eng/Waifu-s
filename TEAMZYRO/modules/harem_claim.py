@@ -101,15 +101,20 @@ async def mclaim(_, message: t.Message):
 
         # Send the character's image and info
         for character in unique_characters:
+            event = character.get('event') or character.get('type')
+            caption_lines = [
+                f"🎊 ℂ𝕆ℕ𝔾ℝ𝔸𝕋𝕌𝕃𝔸𝕋𝕀𝕆ℕ𝕊 {mention}! 🎉",
+                f"🌸 𝐍𝐚𝐦𝐞 : {character['name']}",
+                f"🌈 𝐑𝐚𝐫𝐢𝐭𝐲 : {character['rarity']}",
+                f"⛩️ 𝐀𝐧𝐢𝐦𝐞 : {character['anime']}",
+            ]
+            if event:
+                caption_lines.append(f"🎪 𝐄𝐯𝐞𝐧𝐭 : {event}")
+            caption_lines.append("💫 ℭ𝔬𝔪𝔢 𝔟𝔞𝔠𝔨 𝔱𝔬𝔪𝔬𝔯𝔯𝔬𝔴 𝔣𝔬𝔯 𝔞𝔫𝔬𝔱𝔥𝔢𝔯 𝔠𝔩𝔞𝔦𝔪!")
+
             await message.reply_photo(
                 photo=character['img_url'],
-                caption=(
-                    f"🎊 ℂ𝕆ℕ𝔾ℝ𝔸𝕋𝕌𝕃𝔸𝕋𝕀𝕆ℕ𝕊 {mention}! 🎉\n"
-                    f"🌸 𝐍𝐚𝐦𝐞 : {character['name']}\n"
-                    f"🌈 𝐑𝐚𝐫𝐢𝐭𝐲 : {character['rarity']}\n"
-                    f"⛩️ 𝐀𝐧𝐢𝐦𝐞 : {character['anime']}\n"
-                    f"💫 ℭ𝔬𝔪𝔢 𝔟𝔞𝔠𝔨 𝔱𝔬𝔪𝔬𝔯𝔯𝔬𝔴 𝔣𝔬𝔯 𝔞𝔫𝔬𝔱𝔥𝔢𝔯 𝔠𝔩𝔞𝔦𝔪!"
-                )
+                caption="\n".join(caption_lines)
             )
 
     except Exception as e:

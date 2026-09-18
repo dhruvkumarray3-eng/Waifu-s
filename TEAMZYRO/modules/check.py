@@ -35,6 +35,7 @@ async def check_character(client, message):
         [InlineKeyboardButton("Who Have It", callback_data=f"whohaveit_{character_id}")]
     ])
 
+    event = character.get("event") or character.get("type")
     text = (
         f"🧩 **Character Details:**\n\n"
         f"🆔 **ID:** `{character_id}`\n"
@@ -42,6 +43,8 @@ async def check_character(client, message):
         f"📼 **Anime:** {character.get('anime', '?')}\n"
         f"🪙 **Rarity:** {character.get('rarity', '?')}\n"
     )
+    if event:
+        text += f"🎪 **Event:** {event}\n"
 
     if character.get("vid_url"):
         await message.reply_video(

@@ -82,6 +82,7 @@ async def inlinequery(update: Update, context: CallbackContext) -> None:
     results = []
     for character in characters:
         char_id = str(character.get("id", ""))
+        event = character.get("event") or character.get("type")
 
         caption = (
             f"🧩 <b>Character Details:</b>\n\n"
@@ -90,6 +91,8 @@ async def inlinequery(update: Update, context: CallbackContext) -> None:
             f"📼 <b>Anime:</b> {escape(str(character.get('anime', '?')))}\n"
             f"🪙 <b>Rarity:</b> {escape(str(character.get('rarity', '?')))}\n"
         )
+        if event:
+            caption += f"🎪 <b>Event:</b> {escape(str(event))}\n"
 
         kb = who_have_keyboard(char_id)
 
