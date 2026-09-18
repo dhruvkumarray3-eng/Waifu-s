@@ -124,10 +124,25 @@ async def cancel_cmd(client, message):
     chat_id = message.chat.id
     user_id = message.from_user.id
 
+    cleared = False
     if chat_id in active_shop_chats:
         active_shop_chats.pop(chat_id, None)
         user_shop_state.pop(user_id, None)
-        await message.reply_text("✅ Active shop session canceled.")
+        cleared = True
+
+    try:
+        from TEAMZYRO.modules.smash_dart import active_smash_chats, user_smash_state
+        if chat_id in active_smash_chats:
+            active_smash_chats.pop(chat_id, None)
+            user_smash_state.pop(user_id, None)
+            cleared = True
+    except Exception:
+        pass
+
+    if cleared:
+        await message.reply_text("✅ Active session canceled.")
+    else:
+        await message.reply_text("No active shop or smash session found in this chat.")
 
 
 # ---------------- SHOW RARITY ---------------- #
