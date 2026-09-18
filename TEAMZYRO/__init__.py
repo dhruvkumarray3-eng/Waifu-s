@@ -38,7 +38,7 @@ from config import (
     MUSJ_JOIN, IMGBB_API_KEY, START_MEDIA, PHOTO_URL, STATS_IMG,P2P_CHANNEL
 ) 
 
-FORCE_JOIN_LINK = "https://t.me/oneforall_support"  # Updated dynamically on bot startup
+FORCE_JOIN_LINK = "https://t.me/+cYkP7lDW0uY4MzVl"
 
 # --------------------- TELEGRAM BOT CONFIGURATION -----------------------
 command_filter = f.create(lambda _, __, message: message.text and message.text.startswith("/"))

@@ -165,9 +165,10 @@ async def display_harem(client, message, user_id, page, filter_type=None, filter
         user_first_name = user_db.get("first_name", "User") if user_db else "User"
 
         # Build harem message
-        harem_message = f"🦋 <b>{escape(user_first_name)}'𝗌 𝖡𝖴𝖳𝖳𝖤𝖱𝖥𝖫𝖸 𝖦𝖠𝖱𝖣𝖤𝖭</b> 🌸 (𝖯𝖺𝗀𝖾 {page+1}/{total_pages})\n\n"
-        if filter_rarity:
-            harem_message += f"<blockquote>🎯 <b>𝖨𝖭𝖲𝖯𝖤𝖢𝖳𝖨𝖭𝖦 𝖱𝖠𝖱𝖨𝖳𝖸:</b> {filter_rarity}</blockquote>\n"
+        harem_message = f"🌸 <b>{escape(user_first_name)} 's HAREM</b> (Page {page+1}/{total_pages})\n\n"
+        if filter_type or filter_value or filter_rarity:
+            active_val = filter_value or filter_rarity
+            harem_message += f"🎯 <b>FILTER ({filter_type or 'RARITY'}):</b> {active_val}\n\n"
 
         harem_message += "<blockquote>"
         # Get characters for the current page
@@ -177,18 +178,19 @@ async def display_harem(client, message, user_id, page, filter_type=None, filter
         # Add character details to the message
         for anime, chars in current_grouped_characters.items():
             total_anime_chars = await collection.count_documents({"anime": anime})
-            harem_message += f'\n🔮 <b>{anime}</b> ({len(chars)}/{total_anime_chars})\n'
+            harem_message += f'⛩️ <b>{anime}</b> ({len(chars)}/{total_anime_chars})\n'
             for character in chars:
                 count = character_counts[character['id']]
-                rarity_emoji = rarity_map2.get(character.get('rarity'), '')
-                harem_message += f'  ◈⌠{rarity_emoji}⌡ <code>{character["id"]}</code> {character["name"]} <b>(𝗑{count})</b>\n'
-        harem_message += "</blockquote>"
+                rarity_emoji = rarity_map2.get(character.get('rarity'), '⚪️')
+                harem_message += f'  ◈ [ {rarity_emoji} ] {character["id"]} {character["name"]} (x{count})\n'
+            harem_message += '\n'
+        harem_message = harem_message.rstrip() + "</blockquote>"
 
-        # Add inline buttons for collection and video-only collection with counts
+        # Add inline buttons for collection and video-only collection with blue/red circles
         keyboard = [
             [
-                InlineKeyboardButton(f"🦋 Garden ({total_characters})", switch_inline_query_current_chat=f"collection.{user_id}"),
-                InlineKeyboardButton(f"🧪 Insect AMV ({amv_characters})", switch_inline_query_current_chat=f"collection.{user_id}.AMV")
+                InlineKeyboardButton(f"🔵 Collection ({total_characters})", switch_inline_query_current_chat=f"collection.{user_id}"),
+                InlineKeyboardButton(f"💌 AMV ({amv_characters})", switch_inline_query_current_chat=f"collection.{user_id}.AMV")
             ]
         ]
 
