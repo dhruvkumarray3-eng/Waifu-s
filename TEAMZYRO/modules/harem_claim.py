@@ -10,6 +10,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, timedelta
 from TEAMZYRO import ZYRO as bot
 from TEAMZYRO import user_collection, collection, user_nguess_progress, user_guess_progress, FORCE_JOIN as chat, FORCE_JOIN_LINK
+from TEAMZYRO.unit.zyro_rarity import get_event_display
 
 claim_lock = {}
 
@@ -109,7 +110,7 @@ async def mclaim(_, message: t.Message):
                 f"⛩️ 𝐀𝐧𝐢𝐦𝐞 : {character['anime']}",
             ]
             if event:
-                caption_lines.append(f"🎪 𝐄𝐯𝐞𝐧𝐭 : {event}")
+                caption_lines.append(f"🎪 𝐄𝐯𝐞𝐧𝐭 : {get_event_display(event)}")
             caption_lines.append("💫 ℭ𝔬𝔪𝔢 𝔟𝔞𝔠𝔨 𝔱𝔬𝔪𝔬𝔯𝔯𝔬𝔴 𝔣𝔬𝔯 𝔞𝔫𝔬𝔱𝔥𝔢𝔯 𝔠𝔩𝔞𝔦𝔪!")
 
             await message.reply_photo(

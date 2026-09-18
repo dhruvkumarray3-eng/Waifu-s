@@ -60,7 +60,7 @@ async def get_user_stats(user_id):
         'rarity_counts': rarity_counts
     }, None
 
-@app.on_message(filters.command("stats"))
+@app.on_message(filters.command(["stats", "profile"]))
 async def stats_handler(client: Client, message: Message):
     user_id = message.from_user.id
     

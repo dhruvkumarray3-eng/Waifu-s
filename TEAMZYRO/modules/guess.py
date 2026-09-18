@@ -6,6 +6,7 @@
 
 from TEAMZYRO import *
 from TEAMZYRO import application
+from TEAMZYRO.unit.zyro_rarity import get_event_display
 from html import escape
 import asyncio
 import time
@@ -123,17 +124,39 @@ async def guess(client: Client, message: Message):
                 'balance': 40
             })
 
-        keyboard = [[InlineKeyboardButton("🦋 View Butterfly Garden", switch_inline_query_current_chat=f"collection.{user_id}")]]
+        char = last_characters[chat_id]
+        char_name = char.get("name", "?")
+        char_anime = char.get("anime", "?")
+        char_id = char.get("id", "?")
+        char_rarity = char.get("rarity", "?")
+        event = char.get("event") or char.get("type")
+
+        # Fetch total anime count and user owned count
+        anime_total = await collection.count_documents({"anime": char_anime})
+        user_chars = user.get("characters", []) if user else []
+        anime_owned = sum(1 for c in user_chars if c.get("anime") == char_anime)
+
+        user_name = escape(message.from_user.first_name)
+
+        caption = (
+            f"🪼 <i>A new shadow (<b>{user_name}</b>) joined your army!</i>\n\n"
+            f"<blockquote>🪪 <b>Name ∴</b> {char_name} ⋮ {char_id}\n"
+            f"⛩ <b>Anime ∴</b> {char_anime} ⋮ ﹝{anime_owned}/{anime_total}﹞\n"
+            f"🪙 <b>Rarity ∴</b> {char_rarity}\n"
+        )
+        if event:
+            caption += f"🎪 <b>Event ∴</b> {get_event_display(event)}\n"
+        caption += (
+            f"</blockquote>\n\n"
+            f"<blockquote>⏱️ <b>𝖡𝖱𝖤𝖠𝖳𝖧𝖨𝖭𝖦 𝖳𝖨𝖬𝖤:</b> {time_taken_str}\n"
+            f"💰 <b>𝖤𝖠𝖱𝖤𝖠earned:</b> +40 Wisteria Coins 💴\n"
+            f"💳 <b>𝖳𝖮𝖳𝖠𝖫 𝖡𝖠𝖫𝖠𝖭𝖢𝖤:</b> {new_balance} Coins\n"
+            f"⏰ <b>After {time_taken_str}!</b></blockquote>"
+        )
+
+        keyboard = [[InlineKeyboardButton("VIEW CHARACTER", switch_inline_query_current_chat=f"collection.{user_id}")]]
         await message.reply_text(
-            f'🦋 <b>My, my! What an absolutely exquisite execution~</b> 🌸\n'
-            f'Congratulations <b><a href="tg://user?id={user_id}">{escape(message.from_user.first_name)}</a></b>, you successfully subdued a target! 🎉\n\n'
-            f'<blockquote>📛 <b>𝖭𝖠𝖬𝖤:</b> {last_characters[chat_id]["name"]}\n'
-            f'🌈 <b>𝖠𝖭𝖨𝖬𝖤:</b> {last_characters[chat_id]["anime"]}\n'
-            f'✨ <b>𝖱𝖠𝖱𝖨𝖳𝖸:</b> {last_characters[chat_id]["rarity"]}\n\n'
-            f'⏱️ <b>𝖡𝖱𝖤𝖠𝖳𝖧𝖨𝖭𝖦 𝖳𝖨𝖬𝖤:</b> {time_taken_str}\n'
-            f'💰 <b>𝖤𝖠𝖱𝖭𝖤earned:</b> +40 Wisteria Coins 💴\n'
-            f'💳 <b>𝖳𝖮𝖳𝖠𝖫 𝖡𝖠𝖫𝖠𝖭𝖢𝖤:</b> {new_balance} Coins\n\n'
-            f'This character has been guided straight into your personal Corps Ledger. Use /harem to look through your garden.</blockquote>',
+            caption,
             parse_mode=enums.ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(keyboard)
         )

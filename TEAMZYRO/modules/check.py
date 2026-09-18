@@ -4,6 +4,7 @@
 # ==========================================
 
 from TEAMZYRO import app, collection as character_collection, user_collection
+from TEAMZYRO.unit.zyro_rarity import get_event_display
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.enums import ParseMode
@@ -44,7 +45,7 @@ async def check_character(client, message):
         f"🪙 **Rarity:** {character.get('rarity', '?')}\n"
     )
     if event:
-        text += f"🎪 **Event:** {event}\n"
+        text += f"🎪 **Event:** {get_event_display(event)}\n"
 
     if character.get("vid_url"):
         await message.reply_video(

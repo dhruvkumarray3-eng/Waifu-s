@@ -17,6 +17,7 @@ from telegram import (
 from telegram.ext import InlineQueryHandler, CallbackQueryHandler, CallbackContext
 from TEAMZYRO import application, user_collection
 from TEAMZYRO.unit.zyro_inline import *
+from TEAMZYRO.unit.zyro_rarity import get_event_display
 
 
 all_characters_cache = TTLCache(maxsize=10000, ttl=36000)
@@ -92,7 +93,7 @@ async def inlinequery(update: Update, context: CallbackContext) -> None:
             f"🪙 <b>Rarity:</b> {escape(str(character.get('rarity', '?')))}\n"
         )
         if event:
-            caption += f"🎪 <b>Event:</b> {escape(str(event))}\n"
+            caption += f"🎪 <b>Event:</b> {escape(get_event_display(event))}\n"
 
         kb = who_have_keyboard(char_id)
 

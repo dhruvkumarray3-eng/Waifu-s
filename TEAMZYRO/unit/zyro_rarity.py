@@ -45,3 +45,50 @@ rarity_map2 = {
     "🪞 Supreme": "🪞",
 }
 
+EVENT_EMOJI_MAP = {
+    "CHIBI": "👶",
+    "ROYALTY": "👑",
+    "CHINESE": "🧧",
+    "ASSEMBLY": "🎩",
+    "KIMONO": "👘",
+    "MAID": "🧹",
+    "SCHOOL": "🎒",
+    "BUNNY": "🐰",
+    "BIKINI": "👙",
+    "EGYPT": "🏺",
+    "WEDDING": "💍",
+    "NUN": "🌌",
+    "PIRATE": "🏴‍☠️",
+    "NURSES": "💉",
+    "ANGELIC": "🪽",
+    "POLICE": "🚓",
+    "SHINOBI": "🥷",
+    "KITTY": "🐾",
+    "ATHLETE": "🏆",
+    "ATHLETIC": "🏆",
+    "GOTHIC": "🕷️",
+    "YAKUZA": "🐲",
+    "FIRST NAME": "🏹",
+    "HALLOWEEN": "🎃",
+    "CHRISTMAS": "🎄",
+    "KNIGHT": "🛡️",
+    "SHOGUN": "⛩️",
+    "EROTIC": "🔞",
+    "ECHHI": "🔞",
+    "ECHI": "🔞",
+    "EXOTIC": "✨",
+    "AMV": "🎗️",
+    "AMV EDITION": "🎗️",
+}
+
+def get_event_display(event_name: str) -> str:
+    if not event_name:
+        return ""
+    key = str(event_name).strip().upper()
+    emoji = EVENT_EMOJI_MAP.get(key, "")
+    display_name = str(event_name).strip().upper()
+    if emoji:
+        return f"{emoji} {display_name}"
+    return display_name
+
+

@@ -10,6 +10,7 @@ from pyrogram import Client, filters
 from pymongo import ReturnDocument
 from gridfs import GridFS
 from TEAMZYRO import application, DATABASE_ID, SUPPORT_CHAT, OWNER_ID, collection, user_collection, db, rarity_map, ZYRO, require_power, IMGBB_API_KEY
+from TEAMZYRO.unit.zyro_rarity import get_event_display
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import asyncio
 
@@ -295,7 +296,7 @@ async def ul_main(client, message):
                     f"**ID:** {available_id}"
                 ]
                 if event_type:
-                    caption_lines.append(f"**Event:** {event_type}")
+                    caption_lines.append(f"**Event:** {get_event_display(event_type)}")
                 caption_str = "\n".join(caption_lines)
 
                 # Send character details to the channel using the safe chat ID
@@ -323,7 +324,7 @@ async def ul_main(client, message):
                     f"➥ **Rarity:** {rarity_text}"
                 )
                 if event_type:
-                    reply_txt += f"\n➥ **Event:** {event_type}"
+                    reply_txt += f"\n➥ **Event:** {get_event_display(event_type)}"
                 await message.reply_text(reply_txt)
             except Exception as e:
                 # Update the processing message with the error instead of leaving it there
