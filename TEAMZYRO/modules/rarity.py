@@ -5,32 +5,77 @@
 # ==========================================
 
 # TEAMZYRO/commands/rarity.py
-from TEAMZYRO import app, collection
+from TEAMZYRO import app, collection, user_collection, rarity_map
 from pyrogram import filters, enums
 
-@app.on_message(filters.command("rarity"))
+def to_small_caps(text: str) -> str:
+    small_caps_map = {
+        'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ғ', 'g': 'ɢ',
+        'h': 'ʜ', 'i': 'ɪ', 'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ',
+        'o': 'ᴏ', 'p': 'ᴘ', 'q': 'ǫ', 'r': 'ʀ', 's': 's', 't': 'ᴛ', 'u': 'ᴜ',
+        'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x', 'y': 'ʏ', 'z': 'ᴢ'
+    }
+    return "".join(small_caps_map.get(c.lower(), c) for c in text)
+
+def make_progress_bar(current: int, total: int, length: int = 10) -> str:
+    if total <= 0:
+        return "░" * length
+    percent = min(1.0, current / total)
+    filled = int(round(percent * length))
+    return "█" * filled + "░" * (length - filled)
+
+@app.on_message(filters.command(["rarity", "raritychart"]))
 async def rarity_count(client, message):
     try:
-        # Fetch distinct rarities from the characters collection
-        distinct_rarities = await collection.distinct('rarity')
+        user_id = message.from_user.id
         
-        if not distinct_rarities:
-            await message.reply_text("⚠️ No rarities found in the database.")
-            return
+        # Get user's claimed characters
+        user_db = await user_collection.find_one({"id": user_id})
+        user_chars = user_db.get("characters", []) if user_db else []
         
-        response_message = "✨ Character Count by Rarity ✨\n\n"
-        total_count = 0  # total character counter
+        # Count user's characters per rarity
+        user_counts = {}
+        for c in user_chars:
+            r = c.get("rarity")
+            if r:
+                user_counts[r] = user_counts.get(r, 0) + 1
+
+        rarity_list = list(rarity_map.values())
         
-        # Loop through each rarity and count the number of characters
-        for rarity in distinct_rarities:
-            count = await collection.count_documents({'rarity': rarity})
-            total_count += count
-            response_message += f"◈ {rarity} — {count} character(s)\n"
+        total_db_all = 0
+        total_user_all = 0
         
-        # Add total count at the end
-        response_message += f"\n💠 Total Characters: {total_count}"
+        lines = [
+            "ᴀʀɪsᴇ ʏᴏᴜʀ ᴄʜᴀʀᴀᴄᴛᴇʀ:",
+            "📊 **Rarity Chart**"
+        ]
         
-        await message.reply_text(response_message)
-    
+        for rarity in rarity_list:
+            total_db = await collection.count_documents({"rarity": rarity})
+            if total_db == 0:
+                continue
+                
+            user_has = user_counts.get(rarity, 0)
+            total_db_all += total_db
+            total_user_all += min(user_has, total_db)
+            
+            percent = (user_has / total_db * 100) if total_db > 0 else 0.0
+            p_bar = make_progress_bar(user_has, total_db)
+            
+            parts = rarity.split(" ", 1)
+            emoji = parts[0]
+            name = parts[1] if len(parts) > 1 else rarity
+            small_name = to_small_caps(name)
+            
+            lines.append(f"{emoji} {small_name}")
+            lines.append(f"      {p_bar} {user_has}/{total_db} ({percent:.0f}%)")
+        
+        overall_percent = (total_user_all / total_db_all * 100) if total_db_all > 0 else 0.0
+        lines.append(f"\n📈 **Overall Progress:**")
+        lines.append(f"   {total_user_all}/{total_db_all} ({overall_percent:.1f}%)")
+        
+        response_text = "\n".join(lines)
+        await message.reply_text(response_text, parse_mode=enums.ParseMode.MARKDOWN)
+        
     except Exception as e:
-        await message.reply_text(f"⚠️ Error: {str(e)}")
+        await message.reply_text(f"⚠️ Error loading rarity chart: {str(e)}")

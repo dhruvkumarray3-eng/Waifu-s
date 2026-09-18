@@ -88,8 +88,11 @@ async def harem_handler(client: Client, message: Message):
     # Proceed with existing logic if user is in the channel
     page = 0
     user = await user_collection.find_one({"id": user_id})
+    filter_type = user.get('filter_type', None) if user else None
+    filter_value = user.get('filter_value', None) if user else None
     filter_rarity = user.get('filter_rarity', None) if user else None
-    msg = await display_harem(client, message, user_id, page, filter_rarity, is_initial=True)
+    
+    msg = await display_harem(client, message, user_id, page, filter_type=filter_type, filter_value=filter_value, filter_rarity=filter_rarity, is_initial=True)
     
     # Delete the message after 3 minutes (180 seconds)
     await asyncio.sleep(180)
@@ -99,7 +102,7 @@ async def harem_handler(client: Client, message: Message):
     except Exception as e:
         print(f"Error deleting message: {e}")
 
-async def display_harem(client, message, user_id, page, filter_rarity, is_initial=False, callback_query=None):
+async def display_harem(client, message, user_id, page, filter_type=None, filter_value=None, filter_rarity=None, is_initial=False, callback_query=None):
     try:
         # Check support channel membership again for callback queries
         if not is_initial and not await check_support_channel(client, user_id):
@@ -121,24 +124,32 @@ async def display_harem(client, message, user_id, page, filter_rarity, is_initia
         # Sort characters by anime and ID
         characters = sorted(characters, key=lambda x: (x.get('anime', ''), x.get('id', '')))
 
-        # Filter by rarity if specified
-        if filter_rarity:
-            filtered_characters = [c for c in characters if c.get('rarity') == filter_rarity]
-            if not filtered_characters:
-                keyboard = [
-                    [InlineKeyboardButton("🦋 Remove Rarity Filter", callback_data=f"remove_filter:{user_id}")]
-                ]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                no_rarity_text = (
-                    f"🦋 <b>𝖦𝖠𝖱𝖣𝖤𝖭 𝖨𝖭𝖲𝖯𝖤𝖢𝖳𝖨𝖮𝖭</b>\n\n"
-                    f"<blockquote>Ara ara! No souls under the status <b>{filter_rarity}</b> have been resting in your garden. Use the action button below to drop the partition.</blockquote>"
-                )
-                if is_initial:
-                    await message.reply_text(no_rarity_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
-                else:
-                    await callback_query.message.edit_text(no_rarity_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
-                return
-            characters = filtered_characters
+        # Apply filter by type or rarity
+        if filter_type == "RARITY" and filter_value:
+            characters = [c for c in characters if c.get('rarity') == filter_value]
+        elif filter_type == "EVENT" and filter_value:
+            val = filter_value.lower()
+            characters = [
+                c for c in characters 
+                if val in (c.get('event') or '').lower() or val in (c.get('type') or '').lower() or val in (c.get('anime') or '').lower() or val in (c.get('rarity') or '').lower()
+            ]
+        elif filter_rarity:
+            characters = [c for c in characters if c.get('rarity') == filter_rarity]
+
+        if not characters:
+            keyboard = [
+                [InlineKeyboardButton("🦋 Reset Filters", callback_data=f"remove_filter:{user_id}")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            no_rarity_text = (
+                f"🦋 <b>𝖦𝖠𝖱𝖣𝖤𝖭 𝖨𝖭𝖲𝖯𝖤𝖢𝖳𝖨𝖮𝖭</b>\n\n"
+                f"<blockquote>Ara ara! No souls matching your active filter (<b>{filter_value or filter_rarity or 'Filter'}</b>) were found. Use the button below to reset.</blockquote>"
+            )
+            if is_initial:
+                await message.reply_text(no_rarity_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
+            else:
+                await callback_query.message.edit_text(no_rarity_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
+            return
 
         # Group characters by ID and count duplicates
         character_counts = {k: len(list(v)) for k, v in groupby(characters, key=lambda x: x['id'])}
@@ -290,67 +301,153 @@ async def harem_callback(client: Client, callback_query: CallbackQuery):
     except Exception as e:
         print(f"Error in harem callback: {e}")
 
-@app.on_message(filters.command("hmode"))
-async def hmode_handler(client: Client, message: Message):
-    user_id = message.from_user.id
+EVENT_TAGS = [
+    ("👶 CHIBI", "CHIBI"), ("👑 ROYALTY", "ROYALTY"), ("🧧 CHINESE", "CHINESE"),
+    ("🎩 ASSEMBLY", "ASSEMBLY"), ("👘 KIMONO", "KIMONO"), ("🧹 MAID", "MAID"),
+    ("🎒 SCHOOL", "SCHOOL"), ("🐰 BUNNY", "BUNNY"), ("👙 BIKINI", "BIKINI"),
+    ("🏺 EGYPT", "EGYPT"), ("💍 WEDDING", "WEDDING"), ("🌑 NUN", "NUN"),
+    ("🏴‍☠️ PIRATE", "PIRATE"), ("💉 NURSES", "NURSES"), ("🪽 ANGELIC", "ANGELIC"),
+    ("🚓 POLICE", "POLICE"), ("🥷 SHINOBI", "SHINOBI"), ("🐾 KITTY", "KITTY"),
+    ("🏆 ATHLETIC", "ATHLETIC"), ("🕷 GOTHIC", "GOTHIC"), ("🐲 YAKUZA", "YAKUZA"),
+    ("🏹 FIRST NAME", "FIRST NAME"), ("🎃 HALLOWEEN", "HALLOWEEN"), ("🎄 CHRISTMAS", "CHRISTMAS"),
+    ("🛡 KNIGHT", "KNIGHT"), ("⛩ SHOGUN", "SHOGUN"), ("🔞 EROTIC", "EROTIC"),
+    ("✨ EXOTIC", "EXOTIC")
+]
 
-    # Check support channel membership
-    if not await check_support_channel(client, user_id):
-        await send_barrier_message(client, message)
-        return
+def get_hmode_text(filter_type, filter_value):
+    f_type = filter_type.upper() if filter_type else "NONE"
+    f_val = filter_value.upper() if filter_value else "NONE"
+    return (
+        "<b>YOUR CURRENT H-MODE SETTINGS:</b>\n\n"
+        f"<blockquote><b>FILTER TYPE: {f_type}</b>\n"
+        f"<b>FILTER VALUE: {f_val}</b></blockquote>\n\n"
+        "TO CHANGE IT USE THE BUTTONS BELOW."
+    )
 
+def get_hmode_main_keyboard(user_id):
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("BY RARITY", callback_data=f"hmode_sub:{user_id}:rarity"),
+            InlineKeyboardButton("BY TYPES", callback_data=f"hmode_sub:{user_id}:types")
+        ],
+        [InlineKeyboardButton("DEFAULT", callback_data=f"hmode_set:{user_id}:DEFAULT:NONE")]
+    ])
+
+def get_hmode_rarity_keyboard(user_id):
     keyboard = []
     row = []
-    for i, (rarity, emoji) in enumerate(rarity_map2.items(), 1):
-        row.append(InlineKeyboardButton(f"{emoji} {rarity}", callback_data=f"set_rarity:{user_id}:{rarity}"))
-        if i % 2 == 0:  # Spaced layout for clean readability
+    for rarity, emoji in rarity_map2.items():
+        row.append(InlineKeyboardButton(f"{emoji} {rarity}", callback_data=f"hmode_set:{user_id}:RARITY:{rarity}"))
+        if len(row) == 2:
             keyboard.append(row)
             row = []
     if row:
         keyboard.append(row)
-    keyboard.append([InlineKeyboardButton("🦋 Show All Rarities", callback_data=f"set_rarity:{user_id}:None")])
+    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f"hmode_main:{user_id}")])
+    return InlineKeyboardMarkup(keyboard)
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await message.reply_text(
-        "🦋 <b>𝖦𝖠𝖱𝖣𝖤𝖭 𝖥𝖨𝖫𝖳𝖤𝖱 𝖢𝖮𝖭𝖥𝖨𝖦</b> 🧪\n\n"
-        "<blockquote>Select a target rarity class to restructure how your Corps Ledger displays:</blockquote>", 
-        reply_markup=reply_markup,
-        parse_mode=enums.ParseMode.HTML
-    )
+def get_hmode_types_keyboard(user_id):
+    keyboard = []
+    row = []
+    for label, tag in EVENT_TAGS:
+        row.append(InlineKeyboardButton(label, callback_data=f"hmode_set:{user_id}:EVENT:{tag}"))
+        if len(row) == 3:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
+    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f"hmode_main:{user_id}")])
+    return InlineKeyboardMarkup(keyboard)
 
-@app.on_callback_query(filters.regex(r"^set_rarity"))
-async def set_rarity_callback(client: Client, callback_query: CallbackQuery):
+@app.on_message(filters.command("hmode"))
+async def hmode_handler(client: Client, message: Message):
+    user_id = message.from_user.id
+
+    if not await check_support_channel(client, user_id):
+        await send_barrier_message(client, message)
+        return
+
+    user = await user_collection.find_one({"id": user_id})
+    filter_type = user.get('filter_type') if user else None
+    filter_value = user.get('filter_value') or user.get('filter_rarity') if user else None
+
+    text = get_hmode_text(filter_type, filter_value)
+    markup = get_hmode_main_keyboard(user_id)
+    await message.reply_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+
+@app.on_callback_query(filters.regex(r"^hmode_main:"))
+async def hmode_main_callback(client: Client, callback_query: CallbackQuery):
     try:
-        _, user_id, filter_rarity = callback_query.data.split(':')
+        _, user_id = callback_query.data.split(':')
         user_id = int(user_id)
-        filter_rarity = None if filter_rarity == 'None' else filter_rarity
 
         if callback_query.from_user.id != user_id:
-            await callback_query.answer("🦋 This configuration setup belongs to another Slayer~", show_alert=True)
-            return
+            return await callback_query.answer("🦋 This setting belongs to another user~", show_alert=True)
 
-        # Check support channel membership
-        if not await check_support_channel(client, user_id):
-            await send_barrier_message(client, callback_query)
-            return
+        user = await user_collection.find_one({"id": user_id})
+        filter_type = user.get('filter_type') if user else None
+        filter_value = user.get('filter_value') or user.get('filter_rarity') if user else None
 
-        # Update the user's filter_rarity in the database
-        await user_collection.update_one({"id": user_id}, {"$set": {"filter_rarity": filter_rarity}}, upsert=True)
-
-        # Edit the message to show which rarity is set and remove the buttons
-        if filter_rarity:
-            await callback_query.message.edit_text(
-                f"🦋 <b>𝖥𝖨𝖫𝖳𝖤𝖱 𝖠𝖯𝖯𝖫𝖨𝖤𝖭</b> 🧪\n\n"
-                f"<blockquote>Your garden lens is now adjusted exclusively to: <b>{filter_rarity}</b>. All other ranks will remain veiled until cleared.</blockquote>",
-                parse_mode=enums.ParseMode.HTML
-            )
-        else:
-            await callback_query.message.edit_text(
-                "🦋 <b>𝖥𝖨𝖫𝖳𝖤𝖱 𝖢𝖫𝖤𝖠𝖱𝖤𝖭</b> ✨\n\n"
-                "<blockquote>The garden partition has been lifted! Your ledger will now reveal every soul gathered across all rarities.</blockquote>",
-                parse_mode=enums.ParseMode.HTML
-            )
-
-        await callback_query.answer(f"🦋 Garden filter updated to: {filter_rarity if filter_rarity else 'All'}", show_alert=True)
+        text = get_hmode_text(filter_type, filter_value)
+        markup = get_hmode_main_keyboard(user_id)
+        await callback_query.message.edit_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+        await callback_query.answer()
     except Exception as e:
-        print(f"Error in set_rarity callback: {e}")
+        print(f"Error in hmode_main callback: {e}")
+
+@app.on_callback_query(filters.regex(r"^hmode_sub:"))
+async def hmode_sub_callback(client: Client, callback_query: CallbackQuery):
+    try:
+        _, user_id, menu_type = callback_query.data.split(':')
+        user_id = int(user_id)
+
+        if callback_query.from_user.id != user_id:
+            return await callback_query.answer("🦋 This setting belongs to another user~", show_alert=True)
+
+        user = await user_collection.find_one({"id": user_id})
+        filter_type = user.get('filter_type') if user else None
+        filter_value = user.get('filter_value') or user.get('filter_rarity') if user else None
+        text = get_hmode_text(filter_type, filter_value)
+
+        if menu_type == "rarity":
+            markup = get_hmode_rarity_keyboard(user_id)
+        else:
+            markup = get_hmode_types_keyboard(user_id)
+
+        await callback_query.message.edit_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+        await callback_query.answer()
+    except Exception as e:
+        print(f"Error in hmode_sub callback: {e}")
+
+@app.on_callback_query(filters.regex(r"^hmode_set:"))
+async def hmode_set_callback(client: Client, callback_query: CallbackQuery):
+    try:
+        _, user_id, mode_type, mode_val = callback_query.data.split(':', 3)
+        user_id = int(user_id)
+
+        if callback_query.from_user.id != user_id:
+            return await callback_query.answer("🦋 This setting belongs to another user~", show_alert=True)
+
+        if mode_type == "DEFAULT":
+            new_type = None
+            new_val = None
+        else:
+            new_type = mode_type
+            new_val = mode_val
+
+        await user_collection.update_one(
+            {"id": user_id},
+            {"$set": {
+                "filter_type": new_type,
+                "filter_value": new_val,
+                "filter_rarity": new_val if new_type == "RARITY" else None
+            }},
+            upsert=True
+        )
+
+        text = get_hmode_text(new_type, new_val)
+        markup = get_hmode_main_keyboard(user_id)
+        await callback_query.message.edit_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+        await callback_query.answer(f"✅ Filter updated to {new_val if new_val else 'DEFAULT'}", show_alert=True)
+    except Exception as e:
+        print(f"Error in hmode_set callback: {e}")

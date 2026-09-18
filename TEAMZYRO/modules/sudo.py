@@ -177,4 +177,49 @@ async def sudo_list(client, message):
         sudo_list_text += f"➤ [{first_name}](tg://user?id={user_id}) (`{user_id}`)\n"
 
     await message.reply_text(sudo_list_text, disable_web_page_preview=True)
-            
+
+
+# Command: /rarityspawn / /rarityspwan (Owner only)
+@app.on_message(filters.command(["rarityspawn", "rarityspwan", "setspawn"]))
+async def set_rarity_spawn(client, message):
+    if message.from_user.id != OWNER_ID:
+        await message.reply_text("🚫 Only the bot Owner can use this command.")
+        return
+
+    args = message.command
+    if len(args) < 2:
+        await message.reply_text(
+            "⚙️ **Rarity Spawn Controller**\n\n"
+            "Usage:\n"
+            "`/rarityspawn <rarity_number or rarity_name>` — Lock spawns to a specific rarity.\n"
+            "`/rarityspawn off` — Reset to default weighted random spawns.\n\n"
+            "Examples:\n"
+            "`/rarityspawn 1` (Common)\n"
+            "`/rarityspawn 10` (Supreme)\n"
+            "`/rarityspawn off`"
+        )
+        return
+
+    val = " ".join(args[1:]).strip()
+    import TEAMZYRO.unit.zyro_send_img as send_module
+    from TEAMZYRO import rarity_map
+
+    if val.lower() == "off":
+        send_module.FORCED_RARITY = None
+        await message.reply_text("✅ Rarity spawn lock disabled! Spawns are back to default weighted random.")
+        return
+
+    # Check if number passed
+    if val.isdigit():
+        rar_num = int(val)
+        if rar_num in rarity_map:
+            chosen = rarity_map[rar_num]
+        else:
+            await message.reply_text(f"❌ Invalid rarity number. Choose between 1 and {len(rarity_map)}.")
+            return
+    else:
+        chosen = val
+
+    send_module.FORCED_RARITY = chosen
+    await message.reply_text(f"🎯 **Rarity Spawn Locked!**\n\nAll next character drops are now locked exclusively to: **{chosen}**.\nUse `/rarityspawn off` to unlock.")
+
