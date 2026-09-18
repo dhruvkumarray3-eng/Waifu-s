@@ -148,17 +148,14 @@ async def guess(client: Client, message: Message):
             caption += f"🎪 <b>Event ∴</b> {get_event_display(event)}\n"
         caption += (
             f"</blockquote>\n\n"
-            f"<blockquote>⏱️ <b>𝖡𝖱𝖤𝖠𝖳𝖧𝖨𝖭𝖦 𝖳𝖨𝖬𝖤:</b> {time_taken_str}\n"
-            f"💰 <b>𝖤𝖠𝖱𝖤𝖠earned:</b> +5 Wisteria Coins 💴\n"
+            f"<blockquote>💰 <b>𝖤𝖠𝖱𝖤𝖠earned:</b> +5 Wisteria Coins 💴\n"
             f"💳 <b>𝖳𝖮𝖳𝖠𝖫 𝖡𝖠𝖫𝖠𝖭𝖢𝖤:</b> {new_balance} Coins\n"
             f"⏰ <b>After {time_taken_str}!</b></blockquote>"
         )
 
-        keyboard = [[InlineKeyboardButton("VIEW CHARACTER", switch_inline_query_current_chat=f"collection.{user_id}")]]
         await message.reply_text(
             caption,
             parse_mode=enums.ParseMode.HTML,
-            reply_markup=InlineKeyboardMarkup(keyboard)
         )
     else:
         message_id = last_characters[chat_id].get('message_id')
