@@ -339,8 +339,6 @@ def get_hmode_rarity_keyboard(user_id):
     keyboard = []
     row = []
     for rarity, emoji in rarity_map2.items():
-        if "Supreme" in rarity or "🪞" in emoji:
-            continue
         row.append(InlineKeyboardButton(f"{emoji} {rarity}", callback_data=f"hmode_set:{user_id}:RARITY:{rarity}"))
         if len(row) == 2:
             keyboard.append(row)
