@@ -103,10 +103,10 @@ async def inlinequery(update: Update, context: CallbackContext) -> None:
             f"🪪 <b>Name:</b> {escape(str(character.get('name', '?')))}\n"
             f"📼 <b>Anime:</b> {escape(str(character.get('anime', '?')))}\n"
             f"🪙 <b>Rarity:</b> {escape(str(character.get('rarity', '?')))}\n"
-            f"🌐 <b>Globally Grabbed:</b> {global_count}\n"
         )
         if event:
             caption += f"🎪 <b>Event:</b> {escape(get_event_display(event))}\n"
+        caption += f"\nGlobally Grabbed: {global_count} times\n"
 
         kb = who_have_keyboard(char_id)
 

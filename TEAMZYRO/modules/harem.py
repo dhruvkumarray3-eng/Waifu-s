@@ -5,6 +5,7 @@
 # ==========================================
 
 from TEAMZYRO import *
+from TEAMZYRO.unit.zyro_rarity import EVENT_EMOJI_MAP, rarity_map2
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, CallbackQuery, Message
 from pyrogram.errors import ChatAdminRequired, UserNotParticipant, ChatWriteForbidden
@@ -178,28 +179,37 @@ async def display_harem(client, message, user_id, page, filter_type=None, filter
         # Add character details to the message
         for anime, chars in current_grouped_characters.items():
             total_anime_chars = await collection.count_documents({"anime": anime})
-            harem_message += f'⛩️ <b>{anime}</b> ({len(chars)}/{total_anime_chars})\n'
+            harem_message += f'⛩️ <b>{anime}</b> 「{len(chars)}/{total_anime_chars}」\n'
             for character in chars:
                 count = character_counts[character['id']]
                 rarity_emoji = rarity_map2.get(character.get('rarity'), '⚪️')
-                harem_message += f'  ◈ [ {rarity_emoji} ] {character["id"]} {character["name"]} (x{count})\n'
+                ev = character.get('event') or character.get('type')
+                ev_key = str(ev).strip().upper() if ev else ""
+                ev_emoji = f" ({EVENT_EMOJI_MAP.get(ev_key, '')})" if ev_key and EVENT_EMOJI_MAP.get(ev_key) else ""
+                harem_message += f'  ╰➔ [ {rarity_emoji} ] {character["id"]} {character["name"]}{ev_emoji} ×{count}\n'
             harem_message += '\n'
         harem_message = harem_message.rstrip() + "</blockquote>"
 
-        # Add inline buttons for collection and video-only collection with blue/red circles
+        # Add inline buttons matching screenshot layout
         keyboard = [
             [
-                InlineKeyboardButton(f"🔵 Collection ({total_characters})", switch_inline_query_current_chat=f"collection.{user_id}"),
-                InlineKeyboardButton(f"💌 AMV ({amv_characters})", switch_inline_query_current_chat=f"collection.{user_id}.AMV")
+                InlineKeyboardButton(f"SEE COLLECTION ({total_characters})", switch_inline_query_current_chat=f"collection.{user_id}")
+            ],
+            [
+                InlineKeyboardButton(f"{page+1}/{total_pages}", callback_data="harem_nop")
             ]
         ]
 
         if total_pages > 1:
             nav_buttons = []
             if page > 0:
-                nav_buttons.append(InlineKeyboardButton("🦋 ⬅️", callback_data=f"harem:{page-1}:{user_id}:{filter_rarity or 'None'}"))
+                nav_buttons.append(InlineKeyboardButton("⬅️1x", callback_data=f"harem:{page-1}:{user_id}:{filter_rarity or 'None'}"))
             if page < total_pages - 1:
-                nav_buttons.append(InlineKeyboardButton("➡️ 🦋", callback_data=f"harem:{page+1}:{user_id}:{filter_rarity or 'None'}"))
+                nav_buttons.append(InlineKeyboardButton("1x➡️", callback_data=f"harem:{page+1}:{user_id}:{filter_rarity or 'None'}"))
+            if page + 6 < total_pages:
+                nav_buttons.append(InlineKeyboardButton("6x⏩", callback_data=f"harem:{min(page+6, total_pages-1)}:{user_id}:{filter_rarity or 'None'}"))
+            elif page >= 6:
+                nav_buttons.append(InlineKeyboardButton("⏪6x", callback_data=f"harem:{max(page-6, 0)}:{user_id}:{filter_rarity or 'None'}"))
             keyboard.append(nav_buttons)
 
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -285,6 +295,11 @@ async def remove_filter_callback(client: Client, callback_query: CallbackQuery):
         await callback_query.answer("🦋 Filter removed seamlessly. Showing all target rarities!", show_alert=True)
     except Exception as e:
         print(f"Error in remove_filter callback: {e}")
+
+@app.on_callback_query(filters.regex(r"^harem_nop$"))
+async def harem_nop_callback(client: Client, callback_query: CallbackQuery):
+    await callback_query.answer()
+
 
 @app.on_callback_query(filters.regex(r"^harem"))
 async def harem_callback(client: Client, callback_query: CallbackQuery):

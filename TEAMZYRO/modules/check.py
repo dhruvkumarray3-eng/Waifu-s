@@ -51,10 +51,10 @@ async def check_character(client, message):
         f"🪪 **Name:** {character.get('name', '?')}\n"
         f"📼 **Anime:** {character.get('anime', '?')}\n"
         f"🪙 **Rarity:** {character.get('rarity', '?')}\n"
-        f"🌐 **Globally Grabbed:** {global_count}\n"
     )
     if event:
         text += f"🎪 **Event:** {get_event_display(event)}\n"
+    text += f"\nGlobally Grabbed: {global_count} times\n"
 
     if character.get("vid_url"):
         await message.reply_video(
