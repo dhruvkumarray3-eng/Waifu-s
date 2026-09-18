@@ -116,9 +116,7 @@ async def display_harem(client, message, user_id, page, filter_type=None, filter
         characters = sorted(characters, key=lambda x: (x.get('anime', ''), x.get('id', '')))
 
         # Apply filter by type or rarity
-        if filter_type == "ANIME" and filter_value:
-            characters = [c for c in characters if c.get('anime') == filter_value]
-        elif filter_type == "RARITY" and filter_value:
+        if filter_type == "RARITY" and filter_value:
             characters = [c for c in characters if c.get('rarity') == filter_value]
         elif filter_type == "EVENT" and filter_value:
             val = filter_value.lower()
@@ -341,9 +339,6 @@ def get_hmode_main_keyboard(user_id):
             InlineKeyboardButton("BY RARITY", callback_data=f"hmode_sub:{user_id}:rarity"),
             InlineKeyboardButton("BY TYPES", callback_data=f"hmode_sub:{user_id}:types")
         ],
-        [
-            InlineKeyboardButton("BY ANIME", callback_data=f"hmode_sub:{user_id}:anime")
-        ],
         [InlineKeyboardButton("DEFAULT", callback_data=f"hmode_set:{user_id}:DEFAULT:NONE")]
     ])
 
@@ -359,81 +354,6 @@ def get_hmode_rarity_keyboard(user_id):
         keyboard.append(row)
     keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f"hmode_main:{user_id}")])
     return InlineKeyboardMarkup(keyboard)
-
-async def get_hmode_anime_keyboard(user_id):
-    user = await user_collection.find_one({"id": user_id})
-    user_chars = user.get("characters", []) if user else []
-    anime_counts = {}
-    for c in user_chars:
-        an = c.get("anime")
-        if an:
-            anime_counts[an] = anime_counts.get(an, 0) + 1
-    
-    sorted_animes = sorted(anime_counts.keys(), key=lambda k: anime_counts[k], reverse=True)[:18]
-    if not sorted_animes:
-        sorted_animes = await collection.distinct("anime")
-        sorted_animes = sorted_animes[:18]
-
-    keyboard = []
-    row = []
-    for anime in sorted_animes:
-        row.append(InlineKeyboardButton(f"⛩️ {anime[:15]}", callback_data=f"hmode_set:{user_id}:ANIME:{anime}"))
-        if len(row) == 2:
-            keyboard.append(row)
-            row = []
-    if row:
-        keyboard.append(row)
-    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f"hmode_main:{user_id}")])
-    return InlineKeyboardMarkup(keyboard)
-
-def get_hmode_types_keyboard(user_id):
-    keyboard = []
-    row = []
-    for label, tag in EVENT_TAGS:
-        row.append(InlineKeyboardButton(label, callback_data=f"hmode_set:{user_id}:EVENT:{tag}"))
-        if len(row) == 3:
-            keyboard.append(row)
-            row = []
-    if row:
-        keyboard.append(row)
-    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f"hmode_main:{user_id}")])
-    return InlineKeyboardMarkup(keyboard)
-
-@app.on_message(filters.command("hmode"))
-async def hmode_handler(client: Client, message: Message):
-    user_id = message.from_user.id
-
-    if not await check_support_channel(client, user_id):
-        await send_barrier_message(client, message)
-        return
-
-    user = await user_collection.find_one({"id": user_id})
-    filter_type = user.get('filter_type') if user else None
-    filter_value = user.get('filter_value') or user.get('filter_rarity') if user else None
-
-    text = get_hmode_text(filter_type, filter_value)
-    markup = get_hmode_main_keyboard(user_id)
-    await message.reply_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
-
-@app.on_callback_query(filters.regex(r"^hmode_main:"))
-async def hmode_main_callback(client: Client, callback_query: CallbackQuery):
-    try:
-        _, user_id = callback_query.data.split(':')
-        user_id = int(user_id)
-
-        if callback_query.from_user.id != user_id:
-            return await callback_query.answer("🦋 This setting belongs to another user~", show_alert=True)
-
-        user = await user_collection.find_one({"id": user_id})
-        filter_type = user.get('filter_type') if user else None
-        filter_value = user.get('filter_value') or user.get('filter_rarity') if user else None
-
-        text = get_hmode_text(filter_type, filter_value)
-        markup = get_hmode_main_keyboard(user_id)
-        await callback_query.message.edit_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
-        await callback_query.answer()
-    except Exception as e:
-        print(f"Error in hmode_main callback: {e}")
 
 @app.on_callback_query(filters.regex(r"^hmode_sub:"))
 async def hmode_sub_callback(client: Client, callback_query: CallbackQuery):
@@ -451,8 +371,6 @@ async def hmode_sub_callback(client: Client, callback_query: CallbackQuery):
 
         if menu_type == "rarity":
             markup = get_hmode_rarity_keyboard(user_id)
-        elif menu_type == "anime":
-            markup = await get_hmode_anime_keyboard(user_id)
         else:
             markup = get_hmode_types_keyboard(user_id)
 
