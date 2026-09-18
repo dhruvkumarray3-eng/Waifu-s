@@ -21,26 +21,27 @@ format:- /upload reply character-name anime-name rarity-number
 use rarity number accordingly rarity Map
 
 rarity_map = {
-    1: "⚪️ Common",
-    2: "🟣 Rare",
-    3: "🟡 Legendary",      
-    4: "🟢 Medium",  
-    5: "💮 Special Edition", 
-    6: "🔮 Limited Edition", 
-    7: "💸 Premium Edition", 
-    8: "🌤 Summer",
-    9: "🎐 Celestial", 
-    10: "❄️ Winter", 
-    11: "💝 Valentine", 
-    12: "🎃 Halloween", 
-    13: "🎄 Christmas Special", 
-    14: "🪐 Omniversal", 
-    15: "🎭 Cosplay Master 🎭",
-    16: "🧧 Events",
-    17: "🍑 Echhi",
-    18: "🎗️ AMV Edition",
-    19: "🌟 Luminous",
-    20: "🌧 Rainy",
+    1: "🔵 Common",
+    2: "🟣 Uncommon",
+    3: "🔴 Medium",
+    4: "🟠 Rare",
+    5: "🟡 Legendary",
+    6: "💮 Mystical",
+    7: "⚜️ Divine",
+    8: "⚡ CrossVerse",
+    9: "✨ Cataphract",
+    10: "🪞 Supreme",
+    11: "🎐 Celestial",
+    12: "❄️ Winter",
+    13: "💝 Valentine",
+    14: "🎃 Halloween",
+    15: "🎄 Christmas Special",
+    16: "🎭 Cosplay Master 🎭",
+    17: "🧧 Events",
+    18: "🍑 Echhi",
+    19: "🎗️ AMV Edition",
+    20: "🌟 Luminous",
+    21: "🌧 Rainy",
     22: "🍭 Winter event",
 }
 """
@@ -202,7 +203,7 @@ async def ul_main(client, message):
 
             # Validate rarity value
             if rarity not in rarity_map:
-                await message.reply_text("Invalid rarity value. Please use a value between 1 and 16.")
+                await message.reply_text(f"Invalid rarity value. Please use a value between 1 and {len(rarity_map)}.")
                 return
 
             rarity_text = rarity_map[rarity]
@@ -265,11 +266,11 @@ async def ul_main(client, message):
                         chat_id=actual_chat_id,
                         photo=file_url,
                         caption=(
-                            f"Character Name: {character_name}\n"
-                            f"Anime Name: {anime}\n"
-                            f"Rarity: {rarity_text}\n"
-                            f"ID: {available_id}\n"
-                            f"Added by [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
+                            f"**Character Name:** {character_name}\n"
+                            f"**Anime Name:** {anime}\n"
+                            f"**Rarity:** {rarity_text}\n"
+                            f"**ID:** {available_id}\n"
+                            f"**Added by:** [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
                         ),
                     )
                 elif reply.video:
@@ -277,11 +278,11 @@ async def ul_main(client, message):
                         chat_id=actual_chat_id,
                         video=file_url,
                         caption=(
-                            f"Character Name: {character_name}\n"
-                            f"Anime Name: {anime}\n"
-                            f"Rarity: {rarity_text}\n"
-                            f"ID: {available_id}\n"
-                            f"Added by [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n\n"
+                            f"**Character Name:** {character_name}\n"
+                            f"**Anime Name:** {anime}\n"
+                            f"**Rarity:** {rarity_text}\n"
+                            f"**ID:** {available_id}\n"
+                            f"**Added by:** [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n\n"
                         ),
                     )
 
@@ -292,9 +293,9 @@ async def ul_main(client, message):
                 await processing_message.delete()
                 
                 await message.reply_text(
-                    f"➲ ᴀᴅᴅᴇᴅ ʙʏ» [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
-                    f"➥ Character ID: {available_id}\n"
-                    f"➥ Rarity: {rarity_text}"
+                    f"➲ **ᴀᴅᴅᴇᴅ ʙʏ»** [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
+                    f"➥ **Character ID:** `{available_id}`\n"
+                    f"➥ **Rarity:** {rarity_text}"
                 )
             except Exception as e:
                 # Update the processing message with the error instead of leaving it there

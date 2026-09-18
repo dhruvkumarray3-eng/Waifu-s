@@ -308,19 +308,21 @@ Each result includes:
 Admins can approve or reject the request using the provided buttons.
 
 ➤ Rarity options:
-- ⚪️ Common
-- 🟣 Rare
+- 🔵 Common
+- 🟣 Uncommon
+- 🔴 Medium
+- 🟠 Rare
 - 🟡 Legendary
-- 🟢 Medium
-- 💮 Special Edition
-- 🔮 Limited Edition
+- 💮 Mystical
+- ⚜️ Divine
+- ⚡ CrossVerse
+- ✨ Cataphract
+- 🪞 Supreme
 - 🎐 Celestial
-- 💖 Valentine
-- 🎃 Halloween
 - ❄️ Winter
-- 🌧 Rainy
-- 💸 Expensive
-- 👑 V. I. P.
+- 💝 Valentine
+- 🎃 Halloween
+- 🎄 Christmas Special
 
 ➤ Admin Commands:
 - Approve a pending character request.

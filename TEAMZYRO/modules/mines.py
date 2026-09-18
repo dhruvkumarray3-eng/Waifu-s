@@ -14,24 +14,24 @@ from TEAMZYRO import app, user_collection, collection
 
 # Rarity Map
 rarity_map = {
-    1: "⚪️ Common",
-    2: "🟣 Rare",
-    3: "🟡 Legendary",      
-    4: "🟢 Medium",  
-    5: "💮 Special Edition", 
-    6: "🔮 Limited Edition", 
-    7: "💸 Premium Edition", 
-    8: "🌤 Summer",
-    9: "🎐 Celestial", 
-    10: "❄️ Winter", 
-    11: "💝 Valentine", 
-    12: "🎃 Halloween", 
-    13: "🎄 Christmas Special", 
-    14: "🪐 Omniversal", 
-    15: "🎭 Cosplay Master 🎭",
-    16: "🧧 Events",
-    17: "🍑 Echhi",
-    18: "🎗️ AMV Edition",
+    1: "🔵 Common",
+    2: "🟣 Uncommon",
+    3: "🔴 Medium",
+    4: "🟠 Rare",
+    5: "🟡 Legendary",
+    6: "💮 Mystical",
+    7: "⚜️ Divine",
+    8: "⚡ CrossVerse",
+    9: "✨ Cataphract",
+    10: "🪞 Supreme",
+    11: "🎐 Celestial",
+    12: "❄️ Winter",
+    13: "💝 Valentine",
+    14: "🎃 Halloween",
+    15: "🎄 Christmas Special",
+    16: "🎭 Cosplay Master 🎭",
+    17: "🧧 Events",
+    18: "🍑 Echhi",
 }
 
 # Game settings
@@ -115,9 +115,9 @@ async def get_random_character(user_id, safe_opened):
             rarities = [r for r in rarities if r is not None]
         else:
             if safe_opened < 6:
-                rarities = ['⚪️ Common', '🟣 Rare', '🟢 Medium', '🟡 Legendary']
+                rarities = ['🔵 Common', '🟣 Uncommon', '🔴 Medium', '🟠 Rare', '🟡 Legendary']
             else:
-                rarities = ['💮 Special Edition', '🔮 Limited Edition', '💸 Premium Edition', '🎐 Celestial',]
+                rarities = ['💮 Mystical', '⚜️ Divine', '⚡ CrossVerse', '✨ Cataphract', '🪞 Supreme', '🎐 Celestial']
 
         if not rarities:
             return None

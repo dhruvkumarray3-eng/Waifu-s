@@ -68,7 +68,7 @@ async def update(client: Client, message: Message):
             try:
                 new_value = rarity_map[int(new_value)]  # Use rarity_map
             except (KeyError, ValueError):
-                await message.reply_text('Invalid rarity. Please use a valid number between 1-12 for rarity.')
+                await message.reply_text(f'Invalid rarity. Please use a valid number between 1-{len(rarity_map)} for rarity.')
                 return
 
         # Update the character in the main collection
@@ -141,7 +141,7 @@ async def update_multiple(client: Client, message: Message):
             try:
                 new_value = rarity_map[int(new_value)]  # Use rarity_map
             except (KeyError, ValueError):
-                await message.reply_text('Invalid rarity. Use a valid number between 1-12 for rarity.')
+                await message.reply_text(f'Invalid rarity. Use a valid number between 1-{len(rarity_map)} for rarity.')
                 return
 
         # Track total updates

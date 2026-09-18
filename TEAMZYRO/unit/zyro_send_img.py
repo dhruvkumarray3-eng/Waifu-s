@@ -20,20 +20,21 @@ async def delete_message(chat_id, message_id, context):
         print(f"Error deleting message: {e}")
 
 RARITY_WEIGHTS = {
-    "⚪️ Common": (40, True),             # Most frequent
-    "🟣 Rare": (20, True),               # Less frequent than Common
-    "🟡 Legendary": (12, True),          # Rare but obtainable
-    "🟢 Medium": (10, True),             # Less common than Rare
-    "💮 Special Edition": (8, True),     # Very rare
-    "🔮 Limited Edition": (6, True),     # Extremely rare
-    "💸 Premium Edition": (4, True),     # Ultra-rare
-    "🌤 Summer": (3, False),             # Seasonal rarity
+    "🔵 Common": (40, True),             # Most frequent
+    "🟣 Uncommon": (30, True),           # Less frequent than Common
+    "🔴 Medium": (20, True),             # Medium rarity
+    "🟠 Rare": (15, True),               # Rare
+    "🟡 Legendary": (10, True),          # Rare but obtainable
+    "💮 Mystical": (8, True),            # Very rare
+    "⚜️ Divine": (6, True),              # Extremely rare
+    "⚡ CrossVerse": (4, True),          # Ultra-rare
+    "✨ Cataphract": (3, False),         # Special rarity
+    "🪞 Supreme": (1.2, True),           # Very rare supreme rarity
     "🎐 Celestial": (2.5, True),         # Cosmic themed rarity
     "❄️ Winter": (2, False),             # Winter themed rarity
     "💝 Valentine": (2, False),          # Valentine's rarity
     "🎃 Halloween": (1.8, False),        # Halloween themed rarity
     "🎄 Christmas Special": (1.5, False),# Christmas themed rarity
-    "🪐 Omniversal": (1.2, True),        # Very rare cosmic rarity
     "🎭 Cosplay Master 🎭": (1, True),   # Exclusive cosplay edition
     "🧧 Events": (0.8, False),           # Limited-time event rarity
     "🍑 Echhi": (0.6, True),             # Adult-themed rarity
@@ -91,7 +92,7 @@ async def send_image(update: Update, context: CallbackContext) -> None:
         sent_message = await context.bot.send_video(
             chat_id=chat_id,
             video=selected_character['vid_url'],
-            caption=f"""✨ A {selected_character['rarity']} Character Appears! ✨
+            caption=f"""✨ A **{selected_character['rarity']}** Character Appears! ✨
 🔍 Use /slice to claim this mysterious character!
 💫 Hurry, before someone else snatches them!""",
             parse_mode='Markdown'
@@ -100,7 +101,7 @@ async def send_image(update: Update, context: CallbackContext) -> None:
         sent_message = await context.bot.send_photo(
             chat_id=chat_id,
             photo=selected_character['img_url'],
-            caption=f"""✨ A {selected_character['rarity']} Character Appears! ✨
+            caption=f"""✨ A **{selected_character['rarity']}** Character Appears! ✨
 🔍 Use /slice to claim this mysterious character!
 💫 Hurry, before someone else snatches them!""",
             parse_mode='Markdown'

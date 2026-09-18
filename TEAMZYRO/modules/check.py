@@ -37,10 +37,10 @@ async def check_character(client, message):
 
     text = (
         f"🌟 **Character Info**\n"
-        f"🆔 ID: `{character_id}`\n"
-        f"📛 Name: {character.get('name', '?')}\n"
-        f"📺 Anime: {character.get('anime', '?')}\n"
-        f"💎 Rarity: {character.get('rarity', '?')}\n"
+        f"🆔 **ID:** `{character_id}`\n"
+        f"📛 **Name:** {character.get('name', '?')}\n"
+        f"📺 **Anime:** {character.get('anime', '?')}\n"
+        f"💎 **Rarity:** {character.get('rarity', '?')}\n"
     )
 
     if character.get("vid_url"):

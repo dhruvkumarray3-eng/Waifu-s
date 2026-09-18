@@ -37,7 +37,7 @@ async def get_drop_character():
         pipeline = [
             {
                 '$match': {
-                    'rarity': {'$in': ['🟡 Legendary', '🎐 Celestial', '🔮 Limited Edition', '💮 Special Edition']}, 
+                    'rarity': {'$in': ['🟡 Legendary', '🎐 Celestial', '⚜️ Divine', '💮 Mystical', '🪞 Supreme']}, 
                     'img_url': {'$exists': True, '$ne': ''}, 
                     'id': {'$exists': True}, 
                     'name': {'$exists': True, '$ne': ''}, 

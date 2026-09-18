@@ -120,9 +120,9 @@ async def request_upload(client, message):
             caption=(
                 f"#pending\n\n"
                 f"**New Character Upload Request**\n"
-                f"Character Name: {character_name}\n"
-                f"Anime Name: {anime}\n"
-                f"Requested by [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n\n"
+                f"**Character Name:** {character_name}\n"
+                f"**Anime Name:** {anime}\n"
+                f"**Requested by:** [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n\n"
                 f"Select a rarity to upload the character or cancel the request:"
             ),
             reply_markup=keyboard
@@ -180,11 +180,11 @@ async def handle_callback(client, callback_query):
         await callback_query.edit_message_caption(
             caption=(
                 f"**✅ Character Uploaded**\n"
-                f"Character Name: {request['name']}\n"
-                f"Anime Name: {request['anime']}\n"
-                f"Rarity: {new_rarity_text}\n"
-                f"ID: {available_id}\n"
-                f"Uploaded by [{callback_query.from_user.first_name}](tg://user?id={callback_query.from_user.id})"
+                f"**Character Name:** {request['name']}\n"
+                f"**Anime Name:** {request['anime']}\n"
+                f"**Rarity:** {new_rarity_text}\n"
+                f"**ID:** `{available_id}`\n"
+                f"**Uploaded by:** [{callback_query.from_user.first_name}](tg://user?id={callback_query.from_user.id})"
             ),
             reply_markup=None
         )

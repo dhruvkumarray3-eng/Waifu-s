@@ -16,13 +16,16 @@ user_shop_state = {}
 DEFAULT_DISCOUNT = 12
 
 RARITY_PRICE = {
-    "⚪️ Common": 1000,
-    "🟣 Rare": 5000,
+    "🔵 Common": 1000,
+    "🟣 Uncommon": 2500,
+    "🔴 Medium": 5000,
+    "🟠 Rare": 10000,
     "🟡 Legendary": 15000,
-    "🟢 Medium": 30000,
-    "💮 Special Edition": 25000,
-    "🔮 Limited Edition": 40000,
-    "💸 Premium Edition": 30000,
+    "💮 Mystical": 25000,
+    "⚜️ Divine": 40000,
+    "⚡ CrossVerse": 50000,
+    "✨ Cataphract": 75000,
+    "🪞 Supreme": 100000,
 }
 
 
