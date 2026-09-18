@@ -112,16 +112,16 @@ async def guess(client: Client, message: Message):
         user = await user_collection.find_one({'id': user_id})
         if user:
             current_balance = user.get('balance', 0)
-            new_balance = current_balance + 40
+            new_balance = current_balance + 5
             await user_collection.update_one({'id': user_id}, {'$set': {'balance': new_balance}})
         else:
-            new_balance = 40
+            new_balance = 5
             await user_collection.insert_one({
                 'id': user_id,
                 'username': message.from_user.username,
                 'first_name': message.from_user.first_name,
                 'characters': [last_characters[chat_id]],
-                'balance': 40
+                'balance': 5
             })
 
         char = last_characters[chat_id]
@@ -149,7 +149,7 @@ async def guess(client: Client, message: Message):
         caption += (
             f"</blockquote>\n\n"
             f"<blockquote>⏱️ <b>𝖡𝖱𝖤𝖠𝖳𝖧𝖨𝖭𝖦 𝖳𝖨𝖬𝖤:</b> {time_taken_str}\n"
-            f"💰 <b>𝖤𝖠𝖱𝖤𝖠earned:</b> +40 Wisteria Coins 💴\n"
+            f"💰 <b>𝖤𝖠𝖱𝖤𝖠earned:</b> +5 Wisteria Coins 💴\n"
             f"💳 <b>𝖳𝖮𝖳𝖠𝖫 𝖡𝖠𝖫𝖠𝖭𝖢𝖤:</b> {new_balance} Coins\n"
             f"⏰ <b>After {time_taken_str}!</b></blockquote>"
         )
