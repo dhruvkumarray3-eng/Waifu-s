@@ -5,19 +5,32 @@
 # ==========================================
 
 from TEAMZYRO import *
+from TEAMZYRO.unit.zyro_rarity import rarity_map2
 import random
 import asyncio
+import time
 from telegram import Update
 from telegram.ext import CallbackContext
 
 log = "-1002155818429"
 
-async def delete_message(chat_id, message_id, context):
+async def expire_character(chat_id, message_id, char_timestamp, context):
     await asyncio.sleep(300)  # 5 minutes (300 seconds)
-    try:
-        await context.bot.delete_message(chat_id, message_id)
-    except Exception as e:
-        print(f"Error deleting message: {e}")
+    if chat_id in last_characters and last_characters[chat_id].get('timestamp') == char_timestamp:
+        if chat_id not in first_correct_guesses and not last_characters[chat_id].get('ranaway', False):
+            last_characters[chat_id]['ranaway'] = True
+            try:
+                await context.bot.delete_message(chat_id, message_id)
+            except Exception:
+                pass
+            try:
+                await context.bot.send_message(
+                    chat_id,
+                    "🦋 <i>Oh dear, the target detected our poison incense and fled into the dark!</i>",
+                    parse_mode='HTML'
+                )
+            except Exception as e:
+                print(f"Error sending runaway message: {e}")
 
 RARITY_WEIGHTS = {
     "🔵 Common": (40, True),             # Most frequent
@@ -95,32 +108,38 @@ async def send_image(update: Update, context: CallbackContext) -> None:
         if not selected_character:
             selected_character = random.choice(available_characters)
 
-    # Clear first_correct_guesses if exists
-    last_characters[chat_id] = character
-    last_characters[chat_id]['timestamp'] = time.time()
-    
+    char_timestamp = time.time()
+    last_characters[chat_id] = selected_character
+    last_characters[chat_id]['timestamp'] = char_timestamp
+    last_characters[chat_id]['ranaway'] = False
+
     if chat_id in first_correct_guesses:
         del first_correct_guesses[chat_id]
+
+    rarity_name = selected_character.get('rarity', '')
+    rarity_emoji = rarity_map2.get(rarity_name, '🟣')
+
+    caption_text = (
+        f"{rarity_emoji} <b>ᴛʜᴇ ɢᴀᴛᴇ ᴡᴀꜱ ꜱᴘᴀᴡɴᴇᴅ!!</b>\n"
+        f"<b>ᴀᴅᴅ ᴛʜɪꜱ ᴄʜᴀʀᴀᴄᴛᴇʀ ᴛᴏ ʏᴏᴜʀ ᴀʀᴍʏ</b>\n"
+        f"<b>ʙʏ ꜱᴇɴᴅɪɴɢ /slice ɴᴀᴍᴇ</b>"
+    )
 
     # Check if the character has a video URL
     if 'vid_url' in selected_character:
         sent_message = await context.bot.send_video(
             chat_id=chat_id,
             video=selected_character['vid_url'],
-            caption=f"""✨ A **{selected_character['rarity']}** Character Appears! ✨
-🔍 Use /slice to claim this mysterious character!
-💫 Hurry, before someone else snatches them!""",
-            parse_mode='Markdown'
+            caption=caption_text,
+            parse_mode='HTML'
         )
     else:
         sent_message = await context.bot.send_photo(
             chat_id=chat_id,
             photo=selected_character['img_url'],
-            caption=f"""✨ A **{selected_character['rarity']}** Character Appears! ✨
-🔍 Use /slice to claim this mysterious character!
-💫 Hurry, before someone else snatches them!""",
-            parse_mode='Markdown'
+            caption=caption_text,
+            parse_mode='HTML'
         )
 
-    # Schedule message deletion after 5 minutes
-    asyncio.create_task(delete_message(chat_id, sent_message.message_id, context))
+    # Schedule message deletion and runaway notice after 5 minutes
+    asyncio.create_task(expire_character(chat_id, sent_message.message_id, char_timestamp, context))

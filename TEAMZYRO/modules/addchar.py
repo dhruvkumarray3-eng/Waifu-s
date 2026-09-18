@@ -114,7 +114,7 @@ async def request_upload(client, message):
             rarity_buttons.append(row)
 
         # Cancel button
-        rarity_buttons.append([InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_{result.inserted_id}")])
+        rarity_buttons.append([InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_req_{result.inserted_id}")])
 
         keyboard = InlineKeyboardMarkup(rarity_buttons)
 
@@ -142,11 +142,11 @@ async def request_upload(client, message):
             pass
 
 
-@ZYRO.on_callback_query(filters.create(lambda _, __, q: q.data.startswith("cancel_")))
+@ZYRO.on_callback_query(filters.create(lambda _, __, q: q.data.startswith("cancel_req_")))
 @require_power("add")
 async def handle_cancel(client, callback_query):
     try:
-        _, request_id = callback_query.data.split("_")
+        request_id = callback_query.data.split("cancel_req_")[1]
         result = await upload_collection.delete_one({"_id": ObjectId(request_id)})
 
         if result.deleted_count > 0:
