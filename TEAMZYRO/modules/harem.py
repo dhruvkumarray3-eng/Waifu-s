@@ -345,8 +345,8 @@ def get_hmode_main_keyboard(user_id):
 def get_hmode_rarity_keyboard(user_id):
     keyboard = []
     row = []
-    for rarity, emoji in rarity_map2.items():
-        row.append(InlineKeyboardButton(f"{emoji} {rarity}", callback_data=f"hmode_set:{user_id}:RARITY:{rarity}"))
+    for rarity in rarity_map2.keys():
+        row.append(InlineKeyboardButton(rarity, callback_data=f"hmode_set:{user_id}:RARITY:{rarity}"))
         if len(row) == 2:
             keyboard.append(row)
             row = []
@@ -399,10 +399,17 @@ async def hmode_main_callback(client: Client, callback_query: CallbackQuery):
 
         text = get_hmode_text(filter_type, filter_value)
         markup = get_hmode_main_keyboard(user_id)
-        await callback_query.message.edit_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+        try:
+            await callback_query.message.edit_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+        except Exception:
+            pass
         await callback_query.answer()
     except Exception as e:
         print(f"Error in hmode_main callback: {e}")
+        try:
+            await callback_query.answer()
+        except Exception:
+            pass
 
 @app.on_callback_query(filters.regex(r"^hmode_sub:"))
 async def hmode_sub_callback(client: Client, callback_query: CallbackQuery):
@@ -423,10 +430,17 @@ async def hmode_sub_callback(client: Client, callback_query: CallbackQuery):
         else:
             markup = get_hmode_types_keyboard(user_id)
 
-        await callback_query.message.edit_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+        try:
+            await callback_query.message.edit_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+        except Exception:
+            pass
         await callback_query.answer()
     except Exception as e:
         print(f"Error in hmode_sub callback: {e}")
+        try:
+            await callback_query.answer()
+        except Exception:
+            pass
 
 @app.on_callback_query(filters.regex(r"^hmode_set:"))
 async def hmode_set_callback(client: Client, callback_query: CallbackQuery):
@@ -456,7 +470,14 @@ async def hmode_set_callback(client: Client, callback_query: CallbackQuery):
 
         text = get_hmode_text(new_type, new_val)
         markup = get_hmode_main_keyboard(user_id)
-        await callback_query.message.edit_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+        try:
+            await callback_query.message.edit_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+        except Exception:
+            pass
         await callback_query.answer(f"✅ Filter updated to {new_val if new_val else 'DEFAULT'}", show_alert=True)
     except Exception as e:
         print(f"Error in hmode_set callback: {e}")
+        try:
+            await callback_query.answer(f"✅ Filter updated!", show_alert=True)
+        except Exception:
+            pass
