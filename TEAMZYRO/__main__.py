@@ -7,10 +7,38 @@
 from TEAMZYRO import *
 import importlib
 import logging
+import os
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from TEAMZYRO.modules import ALL_MODULES
 
 
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"OK - WaifuBot is alive!")
+
+    def log_message(self, format, *args):
+        pass  # Suppress HTTP access logs from cluttering bot logs
+
+
+def start_health_server():
+    port = int(os.environ.get("PORT", 8000))
+    try:
+        server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+        LOGGER("TEAMZYRO").info(f"Health check HTTP server listening on port {port}")
+        server.serve_forever()
+    except Exception as e:
+        LOGGER("TEAMZYRO").warning(f"Could not start health check HTTP server on port {port}: {e}")
+
+
 def main() -> None:
+    # Start background HTTP health check server for Koyeb / Render / Heroku
+    health_thread = threading.Thread(target=start_health_server, daemon=True)
+    health_thread.start()
+
     for module_name in ALL_MODULES:
         imported_module = importlib.import_module("TEAMZYRO.modules." + module_name)
     LOGGER("TEAMZYRO.modules").info("𝐀𝐥𝐥 𝐅𝐞𝐚𝐭𝐮𝐫𝐞𝐬 𝐋𝐨𝐚𝐝𝐞𝐝 𝐁𝐚𝐛𝐲🥳...")
