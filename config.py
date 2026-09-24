@@ -1,7 +1,7 @@
 # ==========================================
-# Creator: MrZyro
-# Telegram: @MrZyro_dev
-# GitHub: https://github.com/MrZyro
+# Creator: - 𝐀 𝐑 𝚺 𝐒 ( 𝐆 𝛐 𝐃 𝛐 𝐅 𝐖 𝚫 𝐑 ) !!
+# Telegram: @Sexypremiums
+# GitHub: https://github.com/dhruvkumarray3-eng
 # ==========================================
 
 import os
