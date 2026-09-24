@@ -1,0 +1,1 @@
+- [Remote repository safety](repo-sync-safety.md) — preserve the project’s existing Git metadata and keep generated workspace scaffolding out of focused upstream pushes.
