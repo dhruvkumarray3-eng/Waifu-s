@@ -1,1 +1,2 @@
 - [Remote repository safety](repo-sync-safety.md) — preserve the project’s existing Git metadata and keep generated workspace scaffolding out of focused upstream pushes.
+- [Telegram custom emoji handling](telegram-custom-emoji.md) — use Pyrogram HTML entities with fallbacks and explain group departures before leaving.
