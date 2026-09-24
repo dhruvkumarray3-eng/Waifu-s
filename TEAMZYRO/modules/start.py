@@ -10,6 +10,7 @@ from pyrogram import filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from TEAMZYRO import *
 from TEAMZYRO.unit.zyro_help import HELP_DATA
+from TEAMZYRO.unit.zyro_emoji import lightning, lightning_row, premium, render_help_text
 
 # Use project settings when supplied, while keeping the original invite as a fallback.
 SUPPORT_CHAT = (
@@ -65,15 +66,16 @@ async def generate_start_message(client, message):
     uptime = get_uptime()
 
     caption = (
-        f"🦋 <b>Ara ara\~ Welcome to the Butterfly Mansion!</b> 🌸\n\n"
+        f"{premium(0, '🦋')} <b>Ara ara~ Welcome to the Butterfly Mansion!</b> "
+        f"{premium(1, '🌸')}\n\n"
         f"<i>I am {bot_name}. It seems you've wandered straight into my laboratory. "
         f"Don't worry, the fresh wisteria fragrance will keep you safe from any nasty demons here.</i>\n\n"
-        f"<blockquote>━━━━━━━▧▣▧━━━━━━━\n"
-        f"⦾ <b>MISSION:</b> I track down roaming Slayers and trap wandering Demons in your chats.\n"
-        f"⦾ <b>TRAINING:</b> Add me to your group and use /help to read my custom training manuals.\n"
-        f"━━━━━━━▧▣▧━━━━━━━\n"
-        f"⚡ <b>PULSE:</b> {ping} ms\n"
-        f"⏳ <b>REST ZONE:</b> {uptime}</blockquote>"
+        f"<blockquote>{lightning_row()}\n"
+        f"{premium(5, '⦾')} <b>MISSION:</b> I track down roaming Slayers and trap wandering Demons in your chats.\n"
+        f"{premium(6, '⦾')} <b>TRAINING:</b> Add me to your group and use /help to read my custom training manuals.\n"
+        f"{lightning_row()}\n"
+        f"{lightning(0)} <b>PULSE:</b> {ping} ms\n"
+        f"{premium(10, '⏳')} <b>REST ZONE:</b> {uptime}</blockquote>"
     )
 
     buttons = []
@@ -109,10 +111,11 @@ async def generate_group_start_message(client):
     bot_username = bot_user.username
 
     caption = (
-        f"🦋 <i>Flap, flap... I am</i> <b>{bot_name}</b> 🌸\n\n"
-        f"<blockquote>I am currently monitoring this chat area to detect and expose "
+        f"{premium(11, '🦋')} <i>Flap, flap... I am</i> <b>{bot_name}</b> "
+        f"{premium(12, '🌸')}\n\n"
+        f"<blockquote>{premium(13, '🛡️')} I am currently monitoring this chat area to detect and expose "
         f"hidden demons through message flows.\n\n"
-        f"Use /help to access my specialized medical and combat manuals!</blockquote>"
+        f"{premium(14, '🧪')} Use /help to access my specialized medical and combat manuals!</blockquote>"
     )
 
     buttons = []
@@ -281,9 +284,9 @@ async def show_help_menu(client, query: CallbackQuery):
         [InlineKeyboardButton("⬅️ Return to Mansion", callback_data="back_to_home")]
     )
     text = (
-        "⚙️ <b>🦋 BUTTERFLY MANSION HELP MENU</b>\n\n"
-        "<blockquote>Select a target directory below.\n"
-        "Commands use the prefix: /</blockquote>"
+        f"{premium(15, '⚙️')} <b>{premium(16, '🦋')} BUTTERFLY MANSION HELP MENU</b>\n\n"
+        f"<blockquote>{premium(17, '📚')} Select a target directory below.\n"
+        f"{premium(18, '⌨️')} Commands use the prefix: /</blockquote>"
     )
     try:
         await query.message.edit_caption(
@@ -306,9 +309,9 @@ async def show_help_menu(client, query: CallbackQuery):
 async def show_help(client, query: CallbackQuery):
     module_name = query.data.split("_", 1)[1]
     module_data = HELP_DATA.get(module_name, {})
-    help_text = module_data.get("HELP", "No help for this module.")
+    help_text = render_help_text(module_data.get("HELP", "No help for this module."))
     buttons = [[InlineKeyboardButton("⬅️ Back to Laboratory", callback_data="open_help")]]
-    full_text = f"🧪 <b>{module_name.upper()} Clinical Records:</b>\n\n{help_text}"
+    full_text = f"{premium(19, '🧪')} <b>{module_name.upper()} Clinical Records:</b>\n\n{help_text}"
     try:
         await query.message.edit_caption(
             caption=full_text,

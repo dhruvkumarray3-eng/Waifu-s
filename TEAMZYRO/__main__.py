@@ -10,7 +10,9 @@ import logging
 import os
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from pyrogram.enums import ParseMode
 from TEAMZYRO.modules import ALL_MODULES
+from TEAMZYRO.unit.zyro_emoji import premium
 
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
@@ -89,7 +91,11 @@ def main() -> None:
 
             test_msg = ZYRO.send_message(
                 chat_id=log_target,
-                text="⚙️ **WaifuBot Startup Notification**:\nSuccessfully connected to the logs channel."
+                text=(
+                    f"{premium(0, '⚙️')} <b>WaifuBot Startup Notification</b>\n"
+                    f"{premium(1, '✅')} Successfully connected to the logs channel."
+                ),
+                parse_mode=ParseMode.HTML,
             )
             LOGGER("TEAMZYRO").info(
                 f"Startup log sent successfully (ID: {test_msg.id})."
