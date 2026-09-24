@@ -11,11 +11,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Telegram API credentials
-api_id = os.getenv("API_ID", "")
+_api_id = os.getenv("API_ID", "").strip()
+api_id = int(_api_id) if _api_id.isdigit() else 0
 api_hash = os.getenv("API_HASH", "")
 
 # Bot Token
-TOKEN = os.getenv("TOKEN", "")
+TOKEN = os.getenv("TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 # Logging & Logs Channel
 BOT_LOGGING = os.getenv("BOT_LOGGING", "")
@@ -24,13 +25,17 @@ FORCE_JOIN = os.getenv("FORCE_JOIN", "")
 P2P_CHANNEL = os.getenv("P2P_CHANNEL", "")   # e.g. -1004337222126
 # Database configuration
 mongo_url = os.getenv("MONGO_URL", "")
-backup_mongo_url = os.getenv("BACKUP_MONGO_URL", "")
+backup_mongo_url = os.getenv("BACKUP_MONGO_URL") or mongo_url
 DB_NAME = os.getenv("DB_NAME", "WAIFUBOT")
 
 # Channels & Chats
 SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "")
 UPDATE_CHAT = os.getenv("UPDATE_CHAT", "")
 MUSJ_JOIN = os.getenv("MUSJ_JOIN", "")
+
+# Replit project settings can use the clearer link names supplied by the owner.
+SUPPORT_CHAT = SUPPORT_CHAT or os.getenv("SUPPORT_GROUP_LINK", "")
+UPDATE_CHAT = UPDATE_CHAT or os.getenv("CHANNEL_LINK", "")
 
 # Admin user configurations
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))

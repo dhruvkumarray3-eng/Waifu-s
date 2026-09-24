@@ -45,68 +45,63 @@ def main() -> None:
 
     ZYRO.start()
 
-    # Verify FORCE_JOIN admin permissions and get/generate invite link
+    # Verify FORCE_JOIN admin permissions only when a chat ID/username is configured.
+    # The bot can still run without force-join enforcement.
     import sys
     import TEAMZYRO
-    try:
+    if FORCE_JOIN:
         try:
-            chat_target = int(FORCE_JOIN)
-        except ValueError:
-            chat_target = FORCE_JOIN
-            
-        chat_obj = ZYRO.get_chat(chat_target)
-        invite_link = chat_obj.invite_link
-        if not invite_link:
-            invite = ZYRO.create_chat_invite_link(chat_target)
-            invite_link = invite.invite_link
-            
-        TEAMZYRO.FORCE_JOIN_LINK = invite_link
-        LOGGER("TEAMZYRO").info(f"Successfully verified FORCE_JOIN admin rights. Link: {invite_link}")
-    except Exception as e:
-        LOGGER("TEAMZYRO").error(
-            "\n"
-            "=======================================================================\n"
-            "❌ CRITICAL STARTUP ERROR:\n"
-            f"Bot is NOT an admin in the FORCE_JOIN channel/chat ({FORCE_JOIN})!\n"
-            "Please ensure the bot is added to the channel as an Admin and has\n"
-            "permission to invite users.\n"
-            f"Details: {e}\n"
-            "======================================================================="
-        )
-        try:
-            ZYRO.stop()
-        except:
-            pass
-        sys.exit(1)
+            try:
+                chat_target = int(FORCE_JOIN)
+            except ValueError:
+                chat_target = FORCE_JOIN
 
-    # Verify BOT_LOGGING permissions by sending a startup message
-    try:
-        try:
-            log_target = int(BOT_LOGGING)
-        except ValueError:
-            log_target = BOT_LOGGING
-            
-        test_msg = ZYRO.send_message(
-            chat_id=log_target,
-            text="⚙️ **WaifuBot Startup Notification**:\nSuccessfully connected & verified write permissions in the logs channel!"
+            chat_obj = ZYRO.get_chat(chat_target)
+            invite_link = chat_obj.invite_link
+            if not invite_link:
+                invite = ZYRO.create_chat_invite_link(chat_target)
+                invite_link = invite.invite_link
+
+            TEAMZYRO.FORCE_JOIN_LINK = invite_link
+            LOGGER("TEAMZYRO").info(
+                f"Successfully verified FORCE_JOIN admin rights. Link: {invite_link}"
+            )
+        except Exception as e:
+            LOGGER("TEAMZYRO").error(
+                "\n"
+                "=======================================================================\n"
+                "❌ FORCE_JOIN verification failed; continuing without force-join:\n"
+                f"{e}\n"
+                "======================================================================="
+            )
+    else:
+        LOGGER("TEAMZYRO").warning(
+            "FORCE_JOIN is not configured; force-join checks are disabled."
         )
-        LOGGER("TEAMZYRO").info(f"Successfully verified BOT_LOGGING permissions. Test message sent (ID: {test_msg.id}).")
-    except Exception as e:
-        LOGGER("TEAMZYRO").error(
-            "\n"
-            "=======================================================================\n"
-            "❌ CRITICAL STARTUP ERROR:\n"
-            f"Bot cannot post/send messages to BOT_LOGGING chat ({BOT_LOGGING})!\n"
-            "Please ensure the bot is added to the log channel/group and has permission\n"
-            "to post messages.\n"
-            f"Details: {e}\n"
-            "======================================================================="
-        )
+
+    # Send a startup message only when a logging chat is configured.
+    if BOT_LOGGING:
         try:
-            ZYRO.stop()
-        except:
-            pass
-        sys.exit(1)
+            try:
+                log_target = int(BOT_LOGGING)
+            except ValueError:
+                log_target = BOT_LOGGING
+
+            test_msg = ZYRO.send_message(
+                chat_id=log_target,
+                text="⚙️ **WaifuBot Startup Notification**:\nSuccessfully connected to the logs channel."
+            )
+            LOGGER("TEAMZYRO").info(
+                f"Startup log sent successfully (ID: {test_msg.id})."
+            )
+        except Exception as e:
+            LOGGER("TEAMZYRO").warning(
+                f"BOT_LOGGING is configured but unavailable; continuing: {e}"
+            )
+    else:
+        LOGGER("TEAMZYRO").warning(
+            "BOT_LOGGING is not configured; startup notifications are disabled."
+        )
 
     application.run_polling(drop_pending_updates=True)
     LOGGER("TEAMZYRO").info(

@@ -11,9 +11,13 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQ
 from TEAMZYRO import *
 from TEAMZYRO.unit.zyro_help import HELP_DATA
 
-# Fixed support group invite
-SUPPORT_CHAT = "https://t.me/+cYkP7lDW0uY4MzVl"
-UPDATE_CHAT = os.getenv("UPDATE_CHAT", "")
+# Use project settings when supplied, while keeping the original invite as a fallback.
+SUPPORT_CHAT = (
+    os.getenv("SUPPORT_CHAT")
+    or os.getenv("SUPPORT_GROUP_LINK")
+    or "https://t.me/+cYkP7lDW0uY4MzVl"
+)
+UPDATE_CHAT = os.getenv("UPDATE_CHAT") or os.getenv("CHANNEL_LINK", "")
 OWNER_URL = "https://t.me/powerstar_frogie"
 
 START_TIME = time.time()
