@@ -45,7 +45,11 @@ timeoutMs = 20000
 API_ID = "34242066"
 OWNER_ID = "8908521969"
 SUPPORT_GROUP_LINK = "https://t.me/mafiaxsupports"
-CHANNEL_LINK = "https://t.me/Aresxcores"
+CHANNEL_LINK = "https://t.me/mafiaXupdates"
+BOT_LOGGING = "-1004378945314"
+DATABASE_ID = "-1003784042137"
+FORCE_JOIN = "-1003784042137"
+UPDATE_CHAT = "https://t.me/mafiaXupdates"
 
 [nix]
 channel = "stable-25_05"
