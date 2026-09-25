@@ -6,6 +6,7 @@
 import os
 import random
 import time
+from html import escape
 from pyrogram import filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from TEAMZYRO import *
@@ -71,8 +72,8 @@ async def generate_start_message(client, message):
         f"<i>I am {bot_name}. It seems you've wandered straight into my laboratory. "
         f"Don't worry, the fresh wisteria fragrance will keep you safe from any nasty demons here.</i>\n\n"
         f"<blockquote>{lightning_row()}\n"
-        f"{premium(5, '⦾')} <b>MISSION:</b> I track down roaming Slayers and trap wandering Demons in your chats.\n"
-        f"{premium(6, '⦾')} <b>TRAINING:</b> Add me to your group and use /help to read my custom training manuals.\n"
+        f"{premium(5, '💫')} <b>MISSION:</b> I track down roaming Slayers and trap wandering Demons in your chats.\n"
+        f"{premium(6, '💫')} <b>TRAINING:</b> Add me to your group and use /help to read my custom training manuals.\n"
         f"{lightning_row()}\n"
         f"{lightning(0)} <b>PULSE:</b> {ping} ms\n"
         f"{premium(10, '⏳')} <b>REST ZONE:</b> {uptime}</blockquote>"
@@ -238,13 +239,19 @@ async def start_private_command(client, message):
 
     if BOT_LOGGING:
         try:
+            user = message.from_user
+            mention = (
+                f'<a href="tg://user?id={user.id}">'
+                f"{escape(user.first_name or 'User')}</a>"
+            )
             await app.send_message(
                 chat_id=BOT_LOGGING,
                 text=(
-                    f"{message.from_user.mention} just started the bot.\n\n"
-                    f"<b>User ID:</b> <code>{message.from_user.id}</code>\n"
-                    f"<b>Username:</b> @{message.from_user.username}"
+                    f"{mention} just started the bot.\n\n"
+                    f"<b>User ID:</b> <code>{user.id}</code>\n"
+                    f"<b>Username:</b> @{escape(user.username or 'none')}"
                 ),
+                parse_mode=enums.ParseMode.HTML,
             )
         except Exception as e:
             print(f"Failed to send start log: {e}")
@@ -284,9 +291,9 @@ async def show_help_menu(client, query: CallbackQuery):
         [InlineKeyboardButton("⬅️ Return to Mansion", callback_data="back_to_home")]
     )
     text = (
-        f"{premium(15, '⚙️')} <b>{premium(16, '🦋')} BUTTERFLY MANSION HELP MENU</b>\n\n"
+        f"{premium(15, '🔧')} <b>{premium(16, '🦋')} BUTTERFLY MANSION HELP MENU</b>\n\n"
         f"<blockquote>{premium(17, '📚')} Select a target directory below.\n"
-        f"{premium(18, '⌨️')} Commands use the prefix: /</blockquote>"
+        f"{premium(18, '💻')} Commands use the prefix: /</blockquote>"
     )
     try:
         await query.message.edit_caption(

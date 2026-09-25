@@ -101,7 +101,7 @@ def render_help_text(raw_text: str) -> str:
     lines = []
     for index, line in enumerate(text.splitlines()):
         if line.strip():
-            lines.append(f"{premium(index, '•')} {line}")
+            lines.append(f"{premium(index, '🔹')} {line}")
         else:
             lines.append(line)
     return "\n".join(lines)
