@@ -54,7 +54,16 @@ LIGHTNING_EMOJI_IDS = (
 
 def custom_emoji(emoji_id: str, fallback: str = "✨") -> str:
     """Return Telegram HTML for one custom emoji entity."""
-    return f'<tg-emoji emoji-id="{int(emoji_id)}">{html.escape(fallback)}</tg-emoji>'
+    # Telegram requires the text covered by a custom-emoji entity to be one
+    # character.  Variation selectors are presentation hints, not part of the
+    # fallback character, and make symbols such as ⚡️ two code points long.
+    safe_fallback = (fallback or "✨").replace("\ufe0f", "").replace("\ufe0e", "")
+    if len(safe_fallback) != 1:
+        safe_fallback = safe_fallback[0]
+    return (
+        f'<tg-emoji emoji-id="{int(emoji_id)}">'
+        f"{html.escape(safe_fallback)}</tg-emoji>"
+    )
 
 
 def premium(index: int = 0, fallback: str = "✨") -> str:
@@ -63,7 +72,7 @@ def premium(index: int = 0, fallback: str = "✨") -> str:
     return custom_emoji(emoji_id, fallback)
 
 
-def lightning(index: int = 0, fallback: str = "⚡️") -> str:
+def lightning(index: int = 0, fallback: str = "⚡") -> str:
     """Pick one of the supplied lightning custom emoji IDs."""
     emoji_id = LIGHTNING_EMOJI_IDS[index % len(LIGHTNING_EMOJI_IDS)]
     return custom_emoji(emoji_id, fallback)
